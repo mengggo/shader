@@ -1,0 +1,105 @@
+{
+  // Language-specific formatters (explicit per-language ensures no fallback to other formatters)
+  "[css]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[postcss]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "colorize.languages": [
+    "javascript",
+    "typescript",
+    "css",
+    "scss",
+    "less",
+    "html",
+    "json",
+    "yaml",
+    "markdown",
+    "glsl"
+  ],
+  "css.lint.unknownAtRules": "ignore",
+
+  // CSS (Tailwind v4)
+  "css.lint.validProperties": ["user-drag"],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "always",
+    "source.organizeImports.biome": "always"
+  },
+  "editor.defaultFormatter": "biomejs.biome",
+
+  // Formatting
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
+
+  // File associations
+  "files.associations": {
+    "*.css": "css",
+    "*.json": "jsonc"
+  },
+
+  // General
+  "files.eol": "\n",
+  // "typescript.experimental.useTsgo": true, // Disabled: tsgo doesn't support Next.js plugin
+  "javascript.suggest.autoImports": true,
+  // Disable Prettier to prevent silent formatter conflicts
+  "prettier.enable": false,
+
+  // Search exclusions (performance)
+  "search.exclude": {
+    "**/.next": true,
+    "**/.vercel": true,
+    "**/bun.lock": true,
+    "**/lib/integrations/sanity/sanity.types.ts": true,
+    "**/node_modules": true
+  },
+  "tailwindCSS.classAttributes": [
+    "class",
+    "className",
+    ".*ClassName",
+    ".*Styles"
+  ],
+  "tailwindCSS.classFunctions": ["cn", "cva", "twMerge", "cx"],
+  "tailwindCSS.experimental.classRegex": [
+    ["cn\\(([^)]*)\\)", "(?:'|\"|`)([^\"'`]*)(?:'|\"|`)"],
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+  ],
+  "tailwindCSS.experimental.configFile": "./lib/styles/css/tailwind.css",
+  "tailwindCSS.includeLanguages": {
+    "typescriptreact": "html"
+  },
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+
+  // TypeScript
+  "typescript.suggest.autoImports": true,
+  "typescript.tsdk": "node_modules/typescript/lib",
+
+  // Editor labels (fixed for .tsx files)
+  "workbench.editor.customLabels.patterns": {
+    "**/app/**/layout.tsx": "${dirname(1)}/${dirname} <layout>",
+    "**/app/**/page.tsx": "${dirname(1)}/${dirname} <page>",
+    "**/app/api/**/route.ts": "${dirname(1)}/${dirname} <route>",
+    "**/components/**/index.tsx": "${dirname} <component>"
+  },
+  "workbench.editorAssociations": {
+    "*.svg": "default"
+  }
+}

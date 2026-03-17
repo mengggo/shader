@@ -1,0 +1,19 @@
+# Git Attributes Configuration
+# This file ensures consistent line endings across all platforms
+#
+# Configuration:
+#   *           - Applies to all files in the repository
+#   text=auto   - Git automatically detects text vs binary files
+#   eol=lf      - Normalizes line endings to LF (Unix-style) for text files
+#
+# Why this matters:
+#   - Windows uses CRLF (\r\n) line endings
+#   - Unix/Linux/macOS use LF (\n) line endings
+#   - This prevents line-ending conflicts and ensures consistent diffs
+#
+# What it does:
+#   - On commit: Normalizes all text files to LF line endings
+#   - On checkout: Converts to platform-native format if needed
+#   - Prevents merge conflicts caused by line ending differences
+
+* text=auto eol=lf
