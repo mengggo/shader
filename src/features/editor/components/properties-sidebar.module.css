@@ -1,0 +1,173 @@
+.root {
+  pointer-events: none;
+  position: absolute;
+  right: 16px;
+  top: 76px;
+  width: 300px;
+  z-index: 20;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  pointer-events: auto;
+}
+
+.header {
+  border-bottom: 1px solid var(--ds-border-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px 12px;
+}
+
+.kindRow {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.kindBadge {
+  align-items: center;
+  background-color: var(--ds-color-surface-active);
+  border: 1px solid var(--ds-border-divider);
+  border-radius: var(--ds-radius-icon);
+  color: var(--ds-color-text-secondary);
+  display: inline-flex;
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  min-height: 20px;
+  padding: 0 7px;
+  text-transform: capitalize;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: min(62vh, 620px);
+  overflow-y: auto;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+}
+
+.section {
+  border-top: 1px solid var(--ds-border-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.section:first-child {
+  border-top: 0;
+}
+
+.sectionTitle {
+  text-transform: uppercase;
+}
+
+.fieldStack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inlineField {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 132px;
+}
+
+.inlineFieldCompact {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.fieldLabel {
+  min-width: 0;
+}
+
+.select {
+  width: 132px;
+}
+
+.select :global(button) {
+  width: 132px;
+}
+
+.toggleWrap {
+  justify-self: end;
+}
+
+.colorField {
+  align-items: center;
+  background-color: var(--ds-color-surface-control);
+  border: 1px solid var(--ds-border-divider);
+  border-radius: var(--ds-radius-control);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 24px minmax(0, 1fr);
+  min-height: 32px;
+  padding: 4px 8px 4px 4px;
+}
+
+.colorInput {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: var(--ds-radius-thumb);
+  cursor: pointer;
+  height: 24px;
+  overflow: hidden;
+  padding: 0;
+  width: 24px;
+}
+
+.colorInput::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.colorInput::-webkit-color-swatch {
+  border: 0;
+  border-radius: var(--ds-radius-thumb);
+}
+
+.colorInput::-moz-color-swatch {
+  border: 0;
+  border-radius: var(--ds-radius-thumb);
+}
+
+.colorValue {
+  background: transparent;
+  border: 0;
+  color: var(--ds-color-text-secondary);
+  font-family: var(--ds-font-mono);
+  font-size: 11px;
+  line-height: 14px;
+  min-width: 0;
+  outline: none;
+  text-transform: uppercase;
+  width: 100%;
+}
+
+.vec2Group {
+  display: grid;
+  gap: 8px;
+}
+
+.subSlider :global(.label) {
+  color: var(--ds-color-text-muted);
+}
