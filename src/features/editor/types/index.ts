@@ -64,6 +64,11 @@ export type ParameterType =
   | "vec3"
   | "text"
 
+export type ParameterVisibilityCondition = {
+  equals: boolean | number | string
+  key: string
+}
+
 type ParameterDefinitionBase<TType extends ParameterType, TValue extends ParameterValue> = {
   animatable?: boolean
   defaultValue: TValue
@@ -72,6 +77,7 @@ type ParameterDefinitionBase<TType extends ParameterType, TValue extends Paramet
   key: string
   label: string
   type: TType
+  visibleWhen?: ParameterVisibilityCondition
 }
 
 export type NumberParameterDefinition = ParameterDefinitionBase<"number", number> & {

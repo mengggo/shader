@@ -69,6 +69,33 @@ function toBooleanValue(value: ParameterValue): boolean {
   return value === true
 }
 
+function resolveParamValue(
+  params: Record<string, ParameterValue>,
+  definitions: ParameterDefinition[],
+  key: string,
+): ParameterValue | undefined {
+  const explicitValue = params[key]
+  if (explicitValue !== undefined) {
+    return explicitValue
+  }
+
+  const definition = definitions.find((entry) => entry.key === key)
+  return definition?.defaultValue
+}
+
+function isParamVisible(
+  definition: ParameterDefinition,
+  params: Record<string, ParameterValue>,
+  definitions: ParameterDefinition[],
+): boolean {
+  if (!definition.visibleWhen) {
+    return true
+  }
+
+  const controllingValue = resolveParamValue(params, definitions, definition.visibleWhen.key)
+  return controllingValue === definition.visibleWhen.equals
+}
+
 export function PropertiesSidebar() {
   const selectedLayerId = useLayerStore((state) => state.selectedLayerId)
   const selectedLayer = useLayerStore((state) =>
@@ -113,7 +140,11 @@ export function PropertiesSidebar() {
 
   const definition = getLayerDefinition(selectedLayer.type)
   const visibleParams =
-    selectedLayer.type === "image" ? [] : definition.params
+    selectedLayer.type === "image"
+      ? []
+      : definition.params.filter((param) =>
+          isParamVisible(param, selectedLayer.params, [...definition.params]),
+        )
 
   return (
     <aside className={s.root}>

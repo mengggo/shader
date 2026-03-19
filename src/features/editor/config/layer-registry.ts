@@ -278,6 +278,56 @@ const ditheringParams = [
     type: "select",
   },
   {
+    defaultValue: "source",
+    key: "colorMode",
+    label: "Color Mode",
+    options: [
+      { label: "Monochrome", value: "monochrome" },
+      { label: "Source Color", value: "source" },
+      { label: "Duo Tone", value: "duo-tone" },
+    ],
+    type: "select",
+  },
+  {
+    defaultValue: "#f5f5f0",
+    key: "monoColor",
+    label: "Color",
+    type: "color",
+    visibleWhen: {
+      equals: "monochrome",
+      key: "colorMode",
+    },
+  },
+  {
+    defaultValue: "#101010",
+    key: "shadowColor",
+    label: "Shadow",
+    type: "color",
+    visibleWhen: {
+      equals: "duo-tone",
+      key: "colorMode",
+    },
+  },
+  {
+    defaultValue: "#f5f2e8",
+    key: "highlightColor",
+    label: "Highlight",
+    type: "color",
+    visibleWhen: {
+      equals: "duo-tone",
+      key: "colorMode",
+    },
+  },
+  {
+    defaultValue: 1,
+    key: "pixelSize",
+    label: "Pixel Size",
+    max: 24,
+    min: 1,
+    step: 1,
+    type: "number",
+  },
+  {
     defaultValue: 0.5,
     key: "spread",
     label: "Spread",
@@ -294,12 +344,6 @@ const ditheringParams = [
     min: 2,
     step: 1,
     type: "number",
-  },
-  {
-    defaultValue: "#f5f5f0",
-    key: "color",
-    label: "Tint",
-    type: "color",
   },
 ] as const satisfies ParameterDefinitions
 

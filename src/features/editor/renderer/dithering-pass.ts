@@ -1,9 +1,10 @@
-import type * as THREE from "three/webgpu"
+import * as THREE from "three/webgpu"
 import {
   clamp,
   float,
   floor,
   max,
+  mix,
   screenSize,
   texture as tslTexture,
   type TSLNode,
@@ -18,6 +19,7 @@ import { PassNode } from "@/features/editor/renderer/pass-node"
 import type { LayerParameterValues } from "@/features/editor/types"
 
 type Node = TSLNode
+type DitherColorMode = "duo-tone" | "monochrome" | "source"
 
 function hexToRgb(hex: string): [number, number, number] {
   const normalized = hex.trim().replace("#", "")
@@ -37,27 +39,45 @@ function hexToRgb(hex: string): [number, number, number] {
 }
 
 export class DitheringPass extends PassNode {
+  private colorMode: DitherColorMode = "source"
   private readonly colorBlueUniform: Node
   private readonly colorGreenUniform: Node
   private readonly colorRedUniform: Node
+  private readonly highlightBlueUniform: Node
+  private readonly highlightGreenUniform: Node
+  private readonly highlightRedUniform: Node
   private readonly levelsUniform: Node
   private readonly matrixSizeUniform: Node
+  private readonly pixelSizeUniform: Node
+  private readonly shadowBlueUniform: Node
+  private readonly shadowGreenUniform: Node
+  private readonly shadowRedUniform: Node
   private readonly spreadUniform: Node
   private readonly textures: DitherTextures
 
   private currentTexture: THREE.DataTexture
   private ditherNode: Node | null = null
+  private readonly placeholder: THREE.Texture
+  private sourceTextureNode: Node | null = null
 
   constructor(layerId: string) {
     super(layerId)
     this.textures = buildDitherTextures()
+    this.placeholder = new THREE.Texture()
     this.currentTexture = this.textures.bayer4
     this.levelsUniform = uniform(4)
     this.matrixSizeUniform = uniform(4)
+    this.pixelSizeUniform = uniform(1)
     this.spreadUniform = uniform(0.5)
     this.colorRedUniform = uniform(0.96)
     this.colorGreenUniform = uniform(0.96)
     this.colorBlueUniform = uniform(0.94)
+    this.shadowRedUniform = uniform(0.06)
+    this.shadowGreenUniform = uniform(0.06)
+    this.shadowBlueUniform = uniform(0.06)
+    this.highlightRedUniform = uniform(0.96)
+    this.highlightGreenUniform = uniform(0.95)
+    this.highlightBlueUniform = uniform(0.91)
     this.rebuildEffectNode()
   }
 
@@ -68,6 +88,10 @@ export class DitheringPass extends PassNode {
     time: number,
     delta: number,
   ): void {
+    if (this.sourceTextureNode) {
+      this.sourceTextureNode.value = inputTexture
+    }
+
     if (this.ditherNode) {
       this.ditherNode.value = this.currentTexture
     }
@@ -76,15 +100,32 @@ export class DitheringPass extends PassNode {
   }
 
   override updateParams(params: LayerParameterValues): void {
-    const [red, green, blue] = hexToRgb(
-      typeof params.color === "string" ? params.color : "#f5f5f0",
+    const nextColorMode: DitherColorMode =
+      params.colorMode === "monochrome" || params.colorMode === "duo-tone"
+        ? params.colorMode
+        : "source"
+
+    const [red, green, blue] = hexToRgb(typeof params.monoColor === "string" ? params.monoColor : "#f5f5f0")
+    const [shadowRed, shadowGreen, shadowBlue] = hexToRgb(
+      typeof params.shadowColor === "string" ? params.shadowColor : "#101010",
+    )
+    const [highlightRed, highlightGreen, highlightBlue] = hexToRgb(
+      typeof params.highlightColor === "string" ? params.highlightColor : "#f5f2e8",
     )
 
     this.colorRedUniform.value = red
     this.colorGreenUniform.value = green
     this.colorBlueUniform.value = blue
+    this.shadowRedUniform.value = shadowRed
+    this.shadowGreenUniform.value = shadowGreen
+    this.shadowBlueUniform.value = shadowBlue
+    this.highlightRedUniform.value = highlightRed
+    this.highlightGreenUniform.value = highlightGreen
+    this.highlightBlueUniform.value = highlightBlue
     this.levelsUniform.value =
       typeof params.levels === "number" ? Math.max(2, params.levels) : 4
+    this.pixelSizeUniform.value =
+      typeof params.pixelSize === "number" ? Math.max(1, Math.round(params.pixelSize)) : 1
     this.spreadUniform.value =
       typeof params.spread === "number"
         ? Math.max(0, Math.min(1, params.spread))
@@ -104,9 +145,15 @@ export class DitheringPass extends PassNode {
         this.matrixSizeUniform.value = 4
         break
     }
+
+    if (nextColorMode !== this.colorMode) {
+      this.colorMode = nextColorMode
+      this.rebuildEffectNode()
+    }
   }
 
   override dispose(): void {
+    this.placeholder.dispose()
     this.textures.bayer4.dispose()
     this.textures.bayer8.dispose()
     this.textures.blueNoise.dispose()
@@ -118,11 +165,23 @@ export class DitheringPass extends PassNode {
       return this.inputNode
     }
 
-    const pixelCoordinates = vec2(uv().x, uv().y).mul(screenSize)
-    const ditherUv = pixelCoordinates.div(this.matrixSizeUniform)
+    const pixelSize = max(this.pixelSizeUniform, float(1))
+    const renderTargetUv = vec2(uv().x, float(1).sub(uv().y))
+    const logicalWidth = max(screenSize.x.div(pixelSize), float(1))
+    const logicalHeight = max(screenSize.y.div(pixelSize), float(1))
+    const snappedUv = vec2(
+      floor(renderTargetUv.x.mul(logicalWidth)).add(0.5).div(logicalWidth),
+      floor(renderTargetUv.y.mul(logicalHeight)).add(0.5).div(logicalHeight),
+    )
+    const cellCoordinates = vec2(
+      floor(uv().x.mul(logicalWidth)),
+      floor(uv().y.mul(logicalHeight)),
+    )
+    const ditherUv = cellCoordinates.div(this.matrixSizeUniform)
+    this.sourceTextureNode = tslTexture(this.placeholder, snappedUv)
     this.ditherNode = tslTexture(this.currentTexture, ditherUv)
 
-    const src = this.inputNode
+    const src = this.sourceTextureNode
     const threshold = float(this.ditherNode.r)
     const levelsMinusOne = max(this.levelsUniform.sub(float(1)), float(1))
     const luma = float(src.r)
@@ -136,13 +195,37 @@ export class DitheringPass extends PassNode {
       float(0),
       float(1),
     )
-    const tint = vec3(
+    const monoTint = vec3(
       this.colorRedUniform,
       this.colorGreenUniform,
       this.colorBlueUniform,
     )
-    const tinted = vec3(quantized, quantized, quantized).mul(tint)
+    const shadowTint = vec3(
+      this.shadowRedUniform,
+      this.shadowGreenUniform,
+      this.shadowBlueUniform,
+    )
+    const highlightTint = vec3(
+      this.highlightRedUniform,
+      this.highlightGreenUniform,
+      this.highlightBlueUniform,
+    )
+    const monochrome = vec3(quantized, quantized, quantized).mul(monoTint)
+    const duoTone = mix(shadowTint, highlightTint, quantized)
+    const sourceScale = quantized.div(max(luma, float(0.0001)))
+    const sourceColor = clamp(
+      vec3(float(src.r), float(src.g), float(src.b)).mul(sourceScale),
+      vec3(float(0), float(0), float(0)),
+      vec3(float(1), float(1), float(1)),
+    )
 
-    return vec4(tinted, float(1))
+    switch (this.colorMode) {
+      case "monochrome":
+        return vec4(monochrome, float(1))
+      case "duo-tone":
+        return vec4(duoTone, float(1))
+      default:
+        return vec4(sourceColor, float(1))
+    }
   }
 }
