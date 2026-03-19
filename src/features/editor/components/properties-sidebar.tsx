@@ -1,9 +1,12 @@
 "use client"
 
-import { useMemo } from "react"
+import { AnimatePresence, motion, useReducedMotion } from "motion/react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { getLayerDefinition } from "@/features/editor/config/layer-registry"
 import type {
+  BlendMode,
   EditorAsset,
+  LayerCompositeMode,
   ParameterDefinition,
   ParameterValue,
   SelectParameterDefinition,
@@ -96,7 +99,172 @@ function isParamVisible(
   return controllingValue === definition.visibleWhen.equals
 }
 
+function EmptyPropertiesContent() {
+  return (
+    <div className={s.emptyState}>
+      <Typography tone="secondary" variant="overline">
+        Properties
+      </Typography>
+      <Typography variant="body">Select a layer to edit it.</Typography>
+      <Typography tone="muted" variant="caption">
+        Nothing to edit yet. Create a new layer in the left panel.
+      </Typography>
+    </div>
+  )
+}
+
+function SelectedLayerPropertiesContent({
+  blendMode,
+  compositeMode,
+  definitionName,
+  layerId,
+  layerKind,
+  layerName,
+  layerSubtitle,
+  layerType,
+  opacity,
+  hue,
+  saturation,
+  setLayerBlendMode,
+  setLayerCompositeMode,
+  setLayerHue,
+  setLayerOpacity,
+  setLayerSaturation,
+  updateLayerParam,
+  visibleParams,
+  values,
+}: {
+  blendMode: BlendMode
+  compositeMode: LayerCompositeMode
+  definitionName: string
+  hue: number
+  layerId: string
+  layerKind: string
+  layerName: string
+  layerSubtitle: string
+  layerType: string
+  opacity: number
+  saturation: number
+  setLayerBlendMode: (id: string, value: BlendMode) => void
+  setLayerCompositeMode: (id: string, value: LayerCompositeMode) => void
+  setLayerHue: (id: string, value: number) => void
+  setLayerOpacity: (id: string, value: number) => void
+  setLayerSaturation: (id: string, value: number) => void
+  updateLayerParam: (id: string, key: string, value: ParameterValue) => void
+  values: Record<string, ParameterValue>
+  visibleParams: ParameterDefinition[]
+}) {
+  return (
+    <>
+      <div className={s.header}>
+        <div className={s.kindRow}>
+          <Typography tone="secondary" variant="overline">
+            Properties
+          </Typography>
+          <span className={s.kindBadge}>{formatLayerKind(layerKind)}</span>
+        </div>
+        <Typography variant="title">{layerName}</Typography>
+        <Typography tone="muted" variant="monoXs">
+          {layerSubtitle || layerType}
+        </Typography>
+      </div>
+
+      <div className={s.content}>
+        <section className={s.section}>
+          <Typography className={s.sectionTitle} tone="secondary" variant="overline">
+            General
+          </Typography>
+
+          <div className={s.fieldStack}>
+            <Slider
+              label="Opacity"
+              max={100}
+              min={0}
+              onValueChange={(value) => setLayerOpacity(layerId, value / 100)}
+              value={opacity * 100}
+              valueSuffix="%"
+            />
+
+            <div className={s.inlineField}>
+              <Typography className={s.fieldLabel} tone="secondary" variant="label">
+                Blend
+              </Typography>
+              <Select
+                className={s.select ?? ""}
+                onValueChange={(value) => {
+                  if (value) {
+                    setLayerBlendMode(layerId, value as BlendMode)
+                  }
+                }}
+                options={blendModeOptions}
+                value={blendMode}
+              />
+            </div>
+
+            <div className={s.inlineField}>
+              <Typography className={s.fieldLabel} tone="secondary" variant="label">
+                Mode
+              </Typography>
+              <Select
+                className={s.select ?? ""}
+                onValueChange={(value) => {
+                  if (value) {
+                    setLayerCompositeMode(layerId, value as LayerCompositeMode)
+                  }
+                }}
+                options={compositeModeOptions}
+                value={compositeMode}
+              />
+            </div>
+
+            <Slider
+              label="Hue"
+              max={180}
+              min={-180}
+              onValueChange={(value) => setLayerHue(layerId, value)}
+              value={hue}
+            />
+
+            <Slider
+              label="Saturation"
+              max={2}
+              min={0}
+              onValueChange={(value) => setLayerSaturation(layerId, value)}
+              step={0.01}
+              value={saturation}
+              valueFormatOptions={{ maximumFractionDigits: 2, minimumFractionDigits: 2 }}
+            />
+          </div>
+        </section>
+
+        {visibleParams.length > 0 ? (
+          <section className={s.section}>
+            <Typography className={s.sectionTitle} tone="secondary" variant="overline">
+              {definitionName}
+            </Typography>
+
+            <div className={s.fieldStack}>
+              {visibleParams.map((param) => (
+                <ParameterField
+                  definition={param}
+                  key={param.key}
+                  layerId={layerId}
+                  onChange={updateLayerParam}
+                  value={values[param.key] ?? param.defaultValue}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </div>
+    </>
+  )
+}
+
 export function PropertiesSidebar() {
+  const reduceMotion = useReducedMotion()
+  const [panelHeight, setPanelHeight] = useState<number | null>(null)
+  const viewResizeObserverRef = useRef<ResizeObserver | null>(null)
   const selectedLayerId = useLayerStore((state) => state.selectedLayerId)
   const selectedLayer = useLayerStore((state) =>
     selectedLayerId
@@ -119,141 +287,173 @@ export function PropertiesSidebar() {
   const selectedAsset = selectedLayer
     ? getSelectedAsset(assetById, selectedLayer.assetId)
     : null
+  const selectedDefinition = selectedLayer ? getLayerDefinition(selectedLayer.type) : null
+  let selectedVisibleParams: ParameterDefinition[] = []
 
-  if (!selectedLayer) {
-    return (
-      <aside className={s.root}>
-        <GlassPanel className={s.panel} variant="panel">
-          <div className={s.emptyState}>
-            <Typography tone="secondary" variant="overline">
-              Properties
-            </Typography>
-            <Typography variant="body">Select a layer to edit it.</Typography>
-            <Typography tone="muted" variant="caption">
-              Nothing to edit yet. Create a new layer in the left panel.
-            </Typography>
-          </div>
-        </GlassPanel>
-      </aside>
+  if (selectedLayer && selectedDefinition && selectedLayer.type !== "image") {
+    selectedVisibleParams = selectedDefinition.params.filter((param) =>
+      isParamVisible(param, selectedLayer.params, [...selectedDefinition.params]),
     )
   }
 
-  const definition = getLayerDefinition(selectedLayer.type)
-  const visibleParams =
-    selectedLayer.type === "image"
-      ? []
-      : definition.params.filter((param) =>
-          isParamVisible(param, selectedLayer.params, [...definition.params]),
-        )
+  const heightTransition = reduceMotion
+    ? { duration: 0.12, ease: "easeOut" as const }
+    : {
+        damping: 34,
+        mass: 0.9,
+        stiffness: 340,
+        type: "spring" as const,
+      }
+  const exitTransition = reduceMotion
+    ? { duration: 0.1, ease: "easeOut" as const }
+    : {
+        damping: 34,
+        mass: 0.8,
+        stiffness: 380,
+        type: "spring" as const,
+      }
+  const enterTransition = reduceMotion
+    ? { duration: 0.12, ease: "easeOut" as const }
+    : {
+        damping: 34,
+        delay: 0.08,
+        mass: 0.82,
+        stiffness: 380,
+        type: "spring" as const,
+      }
+  const enterAnimation = reduceMotion
+    ? { opacity: 1, transition: { duration: 0.12, ease: "easeOut" as const } }
+    : {
+        opacity: 1,
+        transition: {
+          opacity: { delay: 0.08, duration: 0.12 },
+          y: enterTransition,
+        },
+        y: 0,
+      }
+  const exitAnimation = reduceMotion
+    ? { opacity: 0, transition: { duration: 0.1, ease: "easeOut" as const } }
+    : {
+        opacity: 0,
+        transition: {
+          opacity: { duration: 0.1 },
+          y: exitTransition,
+        },
+        y: -10,
+      }
+
+  const bindMeasuredView = useCallback((node: HTMLDivElement | null) => {
+    viewResizeObserverRef.current?.disconnect()
+    viewResizeObserverRef.current = null
+
+    if (!node) {
+      return
+    }
+
+    const updateHeight = () => {
+      setPanelHeight(Math.ceil(node.getBoundingClientRect().height) + 2)
+    }
+
+    updateHeight()
+
+    const observer = new ResizeObserver(() => {
+      updateHeight()
+    })
+
+    observer.observe(node)
+    viewResizeObserverRef.current = observer
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      viewResizeObserverRef.current?.disconnect()
+    }
+  }, [])
 
   return (
     <aside className={s.root}>
-      <GlassPanel className={s.panel} variant="panel">
-        <div className={s.header}>
-          <div className={s.kindRow}>
-            <Typography tone="secondary" variant="overline">
-              Properties
-            </Typography>
-            <span className={s.kindBadge}>{formatLayerKind(selectedLayer.type)}</span>
-          </div>
-          <Typography variant="title">{selectedLayer.name}</Typography>
-          <Typography tone="muted" variant="monoXs">
-            {selectedAsset?.fileName ?? selectedLayer.type}
-          </Typography>
+      <div aria-hidden="true" className={s.measureWrap}>
+        <div className={s.measureView} ref={bindMeasuredView}>
+          {selectedLayer ? (
+            <SelectedLayerPropertiesContent
+              blendMode={selectedLayer.blendMode}
+              compositeMode={selectedLayer.compositeMode}
+              definitionName={selectedDefinition?.defaultName ?? selectedLayer.type}
+              hue={selectedLayer.hue}
+              layerId={selectedLayer.id}
+              layerKind={selectedLayer.type}
+              layerName={selectedLayer.name}
+              layerSubtitle={selectedAsset?.fileName ?? selectedLayer.type}
+              layerType={selectedLayer.type}
+              opacity={selectedLayer.opacity}
+              saturation={selectedLayer.saturation}
+              setLayerBlendMode={setLayerBlendMode}
+              setLayerCompositeMode={setLayerCompositeMode}
+              setLayerHue={setLayerHue}
+              setLayerOpacity={setLayerOpacity}
+              setLayerSaturation={setLayerSaturation}
+              updateLayerParam={updateLayerParam}
+              values={selectedLayer.params}
+              visibleParams={selectedVisibleParams}
+            />
+          ) : (
+            <EmptyPropertiesContent />
+          )}
         </div>
+      </div>
 
-        <div className={s.content}>
-          <section className={s.section}>
-            <Typography className={s.sectionTitle} tone="secondary" variant="overline">
-              General
-            </Typography>
-
-            <div className={s.fieldStack}>
-              <Slider
-                label="Opacity"
-                max={100}
-                min={0}
-                onValueChange={(value) => setLayerOpacity(selectedLayer.id, value / 100)}
-                value={selectedLayer.opacity * 100}
-                valueSuffix="%"
-              />
-
-              <div className={s.inlineField}>
-                <Typography className={s.fieldLabel} tone="secondary" variant="label">
-                  Blend
-                </Typography>
-                <Select
-                  className={s.select ?? ""}
-                  onValueChange={(value) => {
-                    if (value) {
-                      setLayerBlendMode(selectedLayer.id, value as typeof selectedLayer.blendMode)
-                    }
-                  }}
-                  options={blendModeOptions}
-                  value={selectedLayer.blendMode}
+      <motion.div
+        className={s.panelWrap}
+        initial={false}
+        {...(panelHeight === null ? {} : { animate: { height: panelHeight } })}
+        transition={heightTransition}
+      >
+        <GlassPanel className={s.panel} variant="panel">
+          <AnimatePresence initial={false} mode="wait">
+            {selectedLayer ? (
+              <motion.div
+                animate={enterAnimation}
+                className={s.layerView}
+                exit={exitAnimation}
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
+                key={selectedLayer.id}
+              >
+                <SelectedLayerPropertiesContent
+                  blendMode={selectedLayer.blendMode}
+                  compositeMode={selectedLayer.compositeMode}
+                  definitionName={selectedDefinition?.defaultName ?? selectedLayer.type}
+                  hue={selectedLayer.hue}
+                  layerId={selectedLayer.id}
+                  layerKind={selectedLayer.type}
+                  layerName={selectedLayer.name}
+                  layerSubtitle={selectedAsset?.fileName ?? selectedLayer.type}
+                  layerType={selectedLayer.type}
+                  opacity={selectedLayer.opacity}
+                  saturation={selectedLayer.saturation}
+                  setLayerBlendMode={setLayerBlendMode}
+                  setLayerCompositeMode={setLayerCompositeMode}
+                  setLayerHue={setLayerHue}
+                  setLayerOpacity={setLayerOpacity}
+                  setLayerSaturation={setLayerSaturation}
+                  updateLayerParam={updateLayerParam}
+                  values={selectedLayer.params}
+                  visibleParams={selectedVisibleParams}
                 />
-              </div>
-
-              <div className={s.inlineField}>
-                <Typography className={s.fieldLabel} tone="secondary" variant="label">
-                  Mode
-                </Typography>
-                <Select
-                  className={s.select ?? ""}
-                  onValueChange={(value) => {
-                    if (value) {
-                      setLayerCompositeMode(
-                        selectedLayer.id,
-                        value as typeof selectedLayer.compositeMode,
-                      )
-                    }
-                  }}
-                  options={compositeModeOptions}
-                  value={selectedLayer.compositeMode}
-                />
-              </div>
-
-              <Slider
-                label="Hue"
-                max={180}
-                min={-180}
-                onValueChange={(value) => setLayerHue(selectedLayer.id, value)}
-                value={selectedLayer.hue}
-              />
-
-              <Slider
-                label="Saturation"
-                max={2}
-                min={0}
-                onValueChange={(value) => setLayerSaturation(selectedLayer.id, value)}
-                step={0.01}
-                value={selectedLayer.saturation}
-                valueFormatOptions={{ maximumFractionDigits: 2, minimumFractionDigits: 2 }}
-              />
-            </div>
-          </section>
-
-          {visibleParams.length > 0 ? (
-            <section className={s.section}>
-              <Typography className={s.sectionTitle} tone="secondary" variant="overline">
-                {definition.defaultName}
-              </Typography>
-
-              <div className={s.fieldStack}>
-                {visibleParams.map((param) => (
-                  <ParameterField
-                    definition={param}
-                    key={param.key}
-                    layerId={selectedLayer.id}
-                    onChange={updateLayerParam}
-                    value={selectedLayer.params[param.key] ?? param.defaultValue}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : null}
-        </div>
-      </GlassPanel>
+              </motion.div>
+            ) : (
+              <motion.div
+                animate={enterAnimation}
+                className={s.layerView}
+                exit={exitAnimation}
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
+                key="empty"
+              >
+                <EmptyPropertiesContent />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </GlassPanel>
+      </motion.div>
     </aside>
   )
 }
