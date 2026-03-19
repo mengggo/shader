@@ -1,5 +1,5 @@
-import type { OrthographicCamera, Scene } from "three"
-import type { WebGPURenderer } from "three/webgpu"
+import * as THREE from "three/webgpu"
+import { PipelineManager } from "@/features/editor/renderer/pipeline-manager"
 import type { EditorRenderer, RendererFrame } from "@/features/editor/renderer/contracts"
 import type { Size } from "@/features/editor/types"
 
@@ -10,22 +10,12 @@ export function browserSupportsWebGPU(): boolean {
 export async function createWebGPURenderer(
   canvas: HTMLCanvasElement,
 ): Promise<EditorRenderer> {
-  const [{ Color, OrthographicCamera, Scene }, webgpuModule] = await Promise.all([
-    import("three"),
-    import("three/webgpu"),
-  ])
-
-  const scene: Scene = new Scene()
-  scene.background = new Color("#0a0d10")
-
-  const camera: OrthographicCamera = new OrthographicCamera(-1, 1, 1, -1, 0.1, 10)
-  camera.position.z = 1
-
-  const renderer: WebGPURenderer = new webgpuModule.WebGPURenderer({
+  const renderer = new THREE.WebGPURenderer({
     alpha: false,
     antialias: true,
     canvas,
   })
+  let pipeline: PipelineManager | null = null
 
   return {
     async initialize() {
@@ -36,14 +26,21 @@ export async function createWebGPURenderer(
     resize(size: Size, pixelRatio: number) {
       renderer.setPixelRatio(pixelRatio)
       renderer.setSize(size.width, size.height, false)
+      pipeline?.resize(size)
     },
 
-    render(_frame: RendererFrame) {
-      renderer.render(scene, camera)
+    render(frame: RendererFrame) {
+      if (!pipeline) {
+        pipeline = new PipelineManager(renderer, frame.viewportSize)
+      }
+
+      pipeline.syncLayers([...frame.layers].reverse())
+      pipeline.render(frame.clock.time, frame.clock.delta)
     },
 
     dispose() {
       renderer.setAnimationLoop(null)
+      pipeline?.dispose()
       renderer.dispose()
     },
   }

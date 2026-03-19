@@ -16,9 +16,14 @@ type SelectProps = Omit<
   "children" | "className" | "items"
 > & {
   className?: string
+  iconClassName?: string
   label?: ReactNode
   options: readonly SelectOption[]
   placeholder?: ReactNode
+  popupClassName?: string
+  triggerAriaLabel?: string
+  triggerClassName?: string
+  valueClassName?: string
 }
 
 function ChevronIcon() {
@@ -37,9 +42,14 @@ function ChevronIcon() {
 
 export function Select({
   className,
+  iconClassName,
   label,
   options,
   placeholder = "Select",
+  popupClassName,
+  triggerAriaLabel,
+  triggerClassName,
+  valueClassName,
   ...props
 }: SelectProps) {
   return (
@@ -54,9 +64,15 @@ export function Select({
       <div className={cn(s.root, className)}>
         {label ? <BaseSelect.Label className={s.label}>{label}</BaseSelect.Label> : null}
 
-        <BaseSelect.Trigger className={s.trigger}>
-          <BaseSelect.Value className={s.value} placeholder={placeholder} />
-          <BaseSelect.Icon className={s.icon}>
+        <BaseSelect.Trigger
+          aria-label={triggerAriaLabel}
+          className={cn(s.trigger, triggerClassName)}
+        >
+          <BaseSelect.Value
+            className={cn(s.value, valueClassName)}
+            placeholder={placeholder}
+          />
+          <BaseSelect.Icon className={cn(s.icon, iconClassName)}>
             <ChevronIcon />
           </BaseSelect.Icon>
         </BaseSelect.Trigger>
@@ -68,7 +84,7 @@ export function Select({
           className={s.positioner}
           sideOffset={8}
         >
-          <BaseSelect.Popup className={s.popup}>
+          <BaseSelect.Popup className={cn(s.popup, popupClassName)}>
             <BaseSelect.List className={s.list}>
               {options.map((option) => (
                 <BaseSelect.Item
