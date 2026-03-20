@@ -212,6 +212,43 @@
   min-width: 0;
 }
 
+.fieldLabelRow {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 0;
+  width: 100%;
+}
+
+.fieldActionWrap {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.fieldActionSlot {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 24px;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.timelineKeyframeButton {
+  height: 24px;
+  width: 24px;
+}
+
+.timelineKeyframeButton :global(svg) {
+  height: 12px;
+  width: 12px;
+}
+
+.timelineKeyframeButtonActive {
+  color: rgb(200 220 255 / 0.92);
+}
+
 .textField {
   display: flex;
   flex-direction: column;
