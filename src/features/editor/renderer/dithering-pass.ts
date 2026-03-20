@@ -1,10 +1,13 @@
 import * as THREE from "three/webgpu"
 import {
+  abs,
   clamp,
   float,
   floor,
+  fract,
   max,
   mix,
+  smoothstep,
   texture as tslTexture,
   type TSLNode,
   uniform,
@@ -18,7 +21,7 @@ import { PassNode } from "@/features/editor/renderer/pass-node"
 import type { LayerParameterValues } from "@/features/editor/types"
 
 type Node = TSLNode
-type DitherColorMode = "duo-tone" | "monochrome" | "posterized-source" | "source"
+type DitherColorMode = "duo-tone" | "monochrome" | "source"
 
 function hexToRgb(hex: string): [number, number, number] {
   const normalized = hex.trim().replace("#", "")
@@ -38,8 +41,9 @@ function hexToRgb(hex: string): [number, number, number] {
 }
 
 export class DitheringPass extends PassNode {
-  private readonly biasUniform: Node
   private colorMode: DitherColorMode = "source"
+  private isAnimated = false
+
   private readonly colorBlueUniform: Node
   private readonly colorGreenUniform: Node
   private readonly colorRedUniform: Node
@@ -57,8 +61,17 @@ export class DitheringPass extends PassNode {
   private readonly spreadUniform: Node
   private readonly textures: DitherTextures
 
+  // Effects uniforms
+  private readonly dotScaleUniform: Node
+  private readonly animateDitherUniform: Node
+  private readonly ditherSpeedUniform: Node
+  private readonly timeUniform: Node
+  private readonly chromaticSplitUniform: Node
+
   private currentTexture: THREE.DataTexture
   private ditherNode: Node | null = null
+  private ditherNodeG: Node | null = null
+  private ditherNodeB: Node | null = null
   private readonly placeholder: THREE.Texture
   private sourceTextureNode: Node | null = null
 
@@ -67,7 +80,6 @@ export class DitheringPass extends PassNode {
     this.textures = buildDitherTextures()
     this.placeholder = new THREE.Texture()
     this.currentTexture = this.textures.bayer4
-    this.biasUniform = uniform(0.25)
     this.levelsUniform = uniform(4)
     this.logicalWidthUniform = uniform(1)
     this.logicalHeightUniform = uniform(1)
@@ -83,6 +95,14 @@ export class DitheringPass extends PassNode {
     this.highlightRedUniform = uniform(0.96)
     this.highlightGreenUniform = uniform(0.95)
     this.highlightBlueUniform = uniform(0.91)
+
+    // Effects uniforms
+    this.dotScaleUniform = uniform(1.0)
+    this.animateDitherUniform = uniform(0.0)
+    this.ditherSpeedUniform = uniform(1.0)
+    this.timeUniform = uniform(0.0)
+    this.chromaticSplitUniform = uniform(0.0)
+
     this.rebuildEffectNode()
   }
 
@@ -100,15 +120,28 @@ export class DitheringPass extends PassNode {
     if (this.ditherNode) {
       this.ditherNode.value = this.currentTexture
     }
+    if (this.ditherNodeG) {
+      this.ditherNodeG.value = this.currentTexture
+    }
+    if (this.ditherNodeB) {
+      this.ditherNodeB.value = this.currentTexture
+    }
 
     super.render(renderer, inputTexture, outputTarget, time, delta)
+  }
+
+  protected override beforeRender(time: number, _delta: number): void {
+    this.timeUniform.value = time
+  }
+
+  override needsContinuousRender(): boolean {
+    return this.isAnimated
   }
 
   override updateParams(params: LayerParameterValues): void {
     const nextColorMode: DitherColorMode =
       params.colorMode === "monochrome" ||
-      params.colorMode === "duo-tone" ||
-      params.colorMode === "posterized-source"
+      params.colorMode === "duo-tone"
         ? params.colorMode
         : "source"
 
@@ -131,10 +164,6 @@ export class DitheringPass extends PassNode {
     this.highlightBlueUniform.value = highlightBlue
     this.levelsUniform.value =
       typeof params.levels === "number" ? Math.max(2, params.levels) : 4
-    this.biasUniform.value =
-      typeof params.bias === "number"
-        ? Math.max(0, Math.min(1, params.bias))
-        : 0.25
     this.pixelSizeUniform.value =
       typeof params.pixelSize === "number" ? Math.max(1, Math.round(params.pixelSize)) : 1
     this.spreadUniform.value =
@@ -143,12 +172,16 @@ export class DitheringPass extends PassNode {
         : 0.5
 
     switch (params.algorithm) {
+      case "bayer-2x2":
+        this.currentTexture = this.textures.bayer2
+        this.matrixSizeUniform.value = 2
+        break
       case "bayer-8x8":
         this.currentTexture = this.textures.bayer8
         this.matrixSizeUniform.value = 8
         break
-      case "blue-noise":
-        this.currentTexture = this.textures.blueNoise
+      case "noise":
+        this.currentTexture = this.textures.noise
         this.matrixSizeUniform.value = 64
         break
       default:
@@ -156,6 +189,15 @@ export class DitheringPass extends PassNode {
         this.matrixSizeUniform.value = 4
         break
     }
+
+    // Effects params
+    this.dotScaleUniform.value =
+      typeof params.dotScale === "number" ? params.dotScale : 1.0
+    this.isAnimated = params.animateDither === true
+    this.animateDitherUniform.value = this.isAnimated ? 1.0 : 0.0
+    this.ditherSpeedUniform.value =
+      typeof params.ditherSpeed === "number" ? params.ditherSpeed : 1.0
+    this.chromaticSplitUniform.value = params.chromaticSplit === true ? 1.0 : 0.0
 
     if (nextColorMode !== this.colorMode) {
       this.colorMode = nextColorMode
@@ -165,9 +207,10 @@ export class DitheringPass extends PassNode {
 
   override dispose(): void {
     this.placeholder.dispose()
+    this.textures.bayer2.dispose()
     this.textures.bayer4.dispose()
     this.textures.bayer8.dispose()
-    this.textures.blueNoise.dispose()
+    this.textures.noise.dispose()
     super.dispose()
   }
 
@@ -185,42 +228,59 @@ export class DitheringPass extends PassNode {
     const renderTargetUv = vec2(uv().x, float(1).sub(uv().y))
     const logicalWidth = max(this.logicalWidthUniform.div(pixelSize), float(1))
     const logicalHeight = max(this.logicalHeightUniform.div(pixelSize), float(1))
-    const snappedUv = vec2(
-      floor(renderTargetUv.x.mul(logicalWidth)).add(0.5).div(logicalWidth),
-      floor(renderTargetUv.y.mul(logicalHeight)).add(0.5).div(logicalHeight),
-    )
+    const logicalDims = vec2(logicalWidth, logicalHeight)
+
+    // Cell grid
     const cellCoordinates = vec2(
-      floor(uv().x.mul(logicalWidth)),
-      floor(uv().y.mul(logicalHeight)),
+      floor(renderTargetUv.x.mul(logicalWidth)),
+      floor(renderTargetUv.y.mul(logicalHeight)),
     )
-    const ditherUv = cellCoordinates.div(this.matrixSizeUniform)
+    const snappedUv = vec2(
+      cellCoordinates.x.add(0.5).div(logicalWidth),
+      cellCoordinates.y.add(0.5).div(logicalHeight),
+    )
+
+    // Animated Dither: shift ditherUv by time * speed when animate is on
+    const timeOffset = this.timeUniform.mul(this.ditherSpeedUniform).mul(this.animateDitherUniform)
+    const ditherUv = cellCoordinates.div(this.matrixSizeUniform).add(timeOffset)
+
+    // Chromatic Split: sample dither at 3 offset UVs when enabled
+    const splitOffset = this.chromaticSplitUniform.div(this.matrixSizeUniform)
+    const ditherUvR = ditherUv
+    const ditherUvG = ditherUv.add(vec2(splitOffset, float(0)))
+    const ditherUvB = ditherUv.add(vec2(float(0), splitOffset))
+
     this.sourceTextureNode = tslTexture(this.placeholder, snappedUv)
-    this.ditherNode = tslTexture(this.currentTexture, ditherUv)
+    this.ditherNode = tslTexture(this.currentTexture, ditherUvR)
+    this.ditherNodeG = tslTexture(this.currentTexture, ditherUvG)
+    this.ditherNodeB = tslTexture(this.currentTexture, ditherUvB)
 
     const src = this.sourceTextureNode
-    const threshold = float(this.ditherNode.r)
+    const thresholdR = float(this.ditherNode.r).sub(float(0.5))
+    const thresholdG = float(this.ditherNodeG.r).sub(float(0.5))
+    const thresholdB = float(this.ditherNodeB.r).sub(float(0.5))
     const levelsMinusOne = max(this.levelsUniform.sub(float(1)), float(1))
-    const thresholdOffset = threshold.sub(this.biasUniform).mul(this.spreadUniform)
-    const luma = float(src.r)
-      .mul(float(0.2126))
-      .add(float(src.g).mul(float(0.7152)))
-      .add(float(src.b).mul(float(0.0722)))
-    const quantized = clamp(
-      floor(luma.mul(levelsMinusOne).add(threshold.mul(this.spreadUniform))).div(
-        levelsMinusOne,
-      ),
-      float(0),
-      float(1),
-    )
-    const posterizedSource = clamp(
+
+    // Per-channel quantization with independent thresholds
+    const adjustedR = float(src.r).add(thresholdR.mul(this.spreadUniform))
+    const adjustedG = float(src.g).add(thresholdG.mul(this.spreadUniform))
+    const adjustedB = float(src.b).add(thresholdB.mul(this.spreadUniform))
+    const quantizedColor = clamp(
       vec3(
-        floor(float(src.r).add(thresholdOffset).mul(levelsMinusOne).add(0.5)).div(levelsMinusOne),
-        floor(float(src.g).add(thresholdOffset).mul(levelsMinusOne).add(0.5)).div(levelsMinusOne),
-        floor(float(src.b).add(thresholdOffset).mul(levelsMinusOne).add(0.5)).div(levelsMinusOne),
+        floor(adjustedR.mul(levelsMinusOne).add(0.5)).div(levelsMinusOne),
+        floor(adjustedG.mul(levelsMinusOne).add(0.5)).div(levelsMinusOne),
+        floor(adjustedB.mul(levelsMinusOne).add(0.5)).div(levelsMinusOne),
       ),
       vec3(float(0), float(0), float(0)),
       vec3(float(1), float(1), float(1)),
     )
+
+    // Color mode
+    const quantizedLuma = float(quantizedColor.x)
+      .mul(float(0.2126))
+      .add(float(quantizedColor.y).mul(float(0.7152)))
+      .add(float(quantizedColor.z).mul(float(0.0722)))
+
     const monoTint = vec3(
       this.colorRedUniform,
       this.colorGreenUniform,
@@ -236,24 +296,27 @@ export class DitheringPass extends PassNode {
       this.highlightGreenUniform,
       this.highlightBlueUniform,
     )
-    const monochrome = vec3(quantized, quantized, quantized).mul(monoTint)
-    const duoTone = mix(shadowTint, highlightTint, quantized)
-    const sourceScale = quantized.div(max(luma, float(0.0001)))
-    const sourceColor = clamp(
-      vec3(float(src.r), float(src.g), float(src.b)).mul(sourceScale),
-      vec3(float(0), float(0), float(0)),
-      vec3(float(1), float(1), float(1)),
-    )
 
+    let colorResult: Node
     switch (this.colorMode) {
       case "monochrome":
-        return vec4(monochrome, float(1))
+        colorResult = vec3(quantizedLuma, quantizedLuma, quantizedLuma).mul(monoTint)
+        break
       case "duo-tone":
-        return vec4(duoTone, float(1))
-      case "posterized-source":
-        return vec4(posterizedSource, float(1))
+        colorResult = mix(shadowTint, highlightTint, quantizedLuma)
+        break
       default:
-        return vec4(sourceColor, float(1))
+        colorResult = quantizedColor
+        break
     }
+
+    // Dot Scale: mask within each cell (square shape only)
+    const cellFrac = fract(renderTargetUv.mul(logicalDims))
+    const centered = cellFrac.sub(vec2(0.5, 0.5))
+    const dist = max(abs(centered.x), abs(centered.y))
+    const halfSize = float(0.5).mul(this.dotScaleUniform)
+    const mask = smoothstep(halfSize, halfSize.sub(float(0.01)), dist)
+
+    return vec4(vec3(colorResult).mul(mask), float(1))
   }
 }
