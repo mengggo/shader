@@ -10,6 +10,7 @@ import type {
   ParameterDefinition,
   ParameterValue,
   SelectParameterDefinition,
+  TextParameterDefinition,
 } from "@/features/editor/types"
 import { ColorPicker } from "@/shared/ui/color-picker"
 import { GlassPanel } from "@/shared/ui/glass-panel"
@@ -74,6 +75,10 @@ function toNumberValue(value: ParameterValue, fallback = 0): number {
 
 function toBooleanValue(value: ParameterValue): boolean {
   return value === true
+}
+
+function toTextValue(value: ParameterValue, fallback: string): string {
+  return typeof value === "string" ? value : fallback
 }
 
 function resolveParamValue(
@@ -688,6 +693,23 @@ function ParameterField({
         />
       )
     }
+
+    case "text":
+      return (
+        <label className={s.textField}>
+          <Typography className={s.fieldLabel} tone="secondary" variant="label">
+            {definition.label}
+          </Typography>
+          <input
+            className={s.textInput}
+            maxLength={(definition as TextParameterDefinition).maxLength}
+            onChange={(event) => onChange(layerId, definition.key, event.currentTarget.value)}
+            spellCheck={false}
+            type="text"
+            value={toTextValue(value, definition.defaultValue)}
+          />
+        </label>
+      )
 
     default:
       return null

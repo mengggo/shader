@@ -198,6 +198,37 @@
   min-width: 0;
 }
 
+.textField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.textInput {
+  appearance: none;
+  background-color: var(--ds-color-surface-control);
+  border: 1px solid var(--ds-border-divider);
+  border-radius: var(--ds-radius-control);
+  color: var(--ds-color-text-primary);
+  font-family: var(--ds-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  min-height: 36px;
+  outline: none;
+  padding: 8px 10px;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.textInput:focus {
+  border-color: var(--ds-color-text-secondary);
+}
+
+.textInput::placeholder {
+  color: var(--ds-color-text-muted);
+}
+
 .select {
   width: 132px;
 }

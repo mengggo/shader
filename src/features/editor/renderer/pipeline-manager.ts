@@ -14,10 +14,10 @@ const RENDER_TARGET_OPTIONS = {
   depthBuffer: false,
   format: THREE.RGBAFormat,
   generateMipmaps: false,
-  magFilter: THREE.LinearFilter,
-  minFilter: THREE.LinearFilter,
+  magFilter: THREE.NearestFilter,
+  minFilter: THREE.NearestFilter,
   stencilBuffer: false,
-  type: THREE.UnsignedByteType,
+  type: THREE.HalfFloatType,
 } as const
 
 function clampUnit(value: number): number {
