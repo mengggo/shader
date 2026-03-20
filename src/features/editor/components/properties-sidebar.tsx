@@ -36,6 +36,9 @@ const compositeModeOptions = [
   { label: "Mask", value: "mask" },
 ] as const
 
+const COLLAPSIBLE_PARAM_GROUPS = new Set(["Points"])
+const DEFAULT_PARAM_GROUP = "Settings"
+
 function getSelectedAsset(
   assetById: Map<string, EditorAsset>,
   assetId: string | null,
@@ -105,6 +108,37 @@ function isParamVisible(
   return typeof controllingValue === "number" && controllingValue >= definition.visibleWhen.gte
 }
 
+type ParamGroup = {
+  collapsible: boolean
+  id: string
+  label: string
+  params: ParameterDefinition[]
+}
+
+function groupVisibleParams(params: ParameterDefinition[]): ParamGroup[] {
+  const groups = new Map<string, ParamGroup>()
+
+  for (const param of params) {
+    const label = param.group ?? DEFAULT_PARAM_GROUP
+    const id = label.toLowerCase().replace(/\s+/g, "-")
+    const existing = groups.get(id)
+
+    if (existing) {
+      existing.params.push(param)
+      continue
+    }
+
+    groups.set(id, {
+      collapsible: COLLAPSIBLE_PARAM_GROUPS.has(label),
+      id,
+      label,
+      params: [param],
+    })
+  }
+
+  return [...groups.values()]
+}
+
 function EmptyPropertiesContent() {
   return (
     <div className={s.emptyState}>
@@ -123,12 +157,15 @@ function SelectedLayerPropertiesContent({
   blendMode,
   compositeMode,
   definitionName,
+  expandedParamGroups,
   layerId,
   layerKind,
   layerName,
   layerSubtitle,
   layerType,
+  onToggleParamGroup,
   opacity,
+  reduceMotion,
   hue,
   saturation,
   setLayerBlendMode,
@@ -143,13 +180,16 @@ function SelectedLayerPropertiesContent({
   blendMode: BlendMode
   compositeMode: LayerCompositeMode
   definitionName: string
+  expandedParamGroups: Record<string, boolean>
   hue: number
   layerId: string
   layerKind: string
   layerName: string
   layerSubtitle: string
   layerType: string
+  onToggleParamGroup: (groupId: string) => void
   opacity: number
+  reduceMotion: boolean
   saturation: number
   setLayerBlendMode: (id: string, value: BlendMode) => void
   setLayerCompositeMode: (id: string, value: LayerCompositeMode) => void
@@ -160,6 +200,10 @@ function SelectedLayerPropertiesContent({
   values: Record<string, ParameterValue>
   visibleParams: ParameterDefinition[]
 }) {
+  const groupedParams = useMemo(() => groupVisibleParams(visibleParams), [visibleParams])
+  const showGroupedParams =
+    groupedParams.length > 1 || groupedParams[0]?.label !== DEFAULT_PARAM_GROUP
+
   return (
     <>
       <div className={s.header}>
@@ -249,17 +293,100 @@ function SelectedLayerPropertiesContent({
               {definitionName}
             </Typography>
 
-            <div className={s.fieldStack}>
-              {visibleParams.map((param) => (
-                <ParameterField
-                  definition={param}
-                  key={param.key}
-                  layerId={layerId}
-                  onChange={updateLayerParam}
-                  value={values[param.key] ?? param.defaultValue}
-                />
-              ))}
-            </div>
+            {showGroupedParams ? (
+              <div className={s.groupStack}>
+                {groupedParams.map((group) => {
+                  const groupKey = `${layerId}:${group.id}`
+                  const isExpanded = expandedParamGroups[groupKey] ?? true
+
+                  return (
+                    <div className={s.paramGroup} key={group.id}>
+                      {group.collapsible ? (
+                        <button
+                          aria-expanded={isExpanded}
+                          className={s.groupToggle}
+                          onClick={() => onToggleParamGroup(groupKey)}
+                          type="button"
+                        >
+                          <div className={s.groupHeading}>
+                            <span
+                              className={isExpanded ? s.groupChevronExpanded : s.groupChevron}
+                              aria-hidden="true"
+                            />
+                            <Typography tone="secondary" variant="overline">
+                              {group.label}
+                            </Typography>
+                          </div>
+                        </button>
+                      ) : (
+                        <div className={s.groupHeadingStatic}>
+                          <Typography tone="secondary" variant="overline">
+                            {group.label}
+                          </Typography>
+                        </div>
+                      )}
+
+                      <AnimatePresence initial={false}>
+                        {isExpanded ? (
+                          <motion.div
+                            animate={
+                              reduceMotion
+                                ? { opacity: 1 }
+                                : { height: "auto", opacity: 1 }
+                            }
+                            className={s.groupBodyWrap}
+                            exit={
+                              reduceMotion
+                                ? { opacity: 0 }
+                                : { height: 0, opacity: 0 }
+                            }
+                            initial={
+                              reduceMotion
+                                ? { opacity: 0 }
+                                : { height: 0, opacity: 0 }
+                            }
+                            transition={
+                              reduceMotion
+                                ? { duration: 0.12, ease: "easeOut" }
+                                : {
+                                    damping: 34,
+                                    mass: 0.85,
+                                    stiffness: 360,
+                                    type: "spring",
+                                  }
+                            }
+                          >
+                            <div className={s.fieldStack}>
+                              {group.params.map((param) => (
+                                <ParameterField
+                                  definition={param}
+                                  key={param.key}
+                                  layerId={layerId}
+                                  onChange={updateLayerParam}
+                                  value={values[param.key] ?? param.defaultValue}
+                                />
+                              ))}
+                            </div>
+                          </motion.div>
+                        ) : null}
+                      </AnimatePresence>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className={s.fieldStack}>
+                {visibleParams.map((param) => (
+                  <ParameterField
+                    definition={param}
+                    key={param.key}
+                    layerId={layerId}
+                    onChange={updateLayerParam}
+                    value={values[param.key] ?? param.defaultValue}
+                  />
+                ))}
+              </div>
+            )}
           </section>
         ) : null}
       </div>
@@ -268,7 +395,8 @@ function SelectedLayerPropertiesContent({
 }
 
 export function PropertiesSidebar() {
-  const reduceMotion = useReducedMotion()
+  const reduceMotion = useReducedMotion() ?? false
+  const [expandedParamGroups, setExpandedParamGroups] = useState<Record<string, boolean>>({})
   const [panelHeight, setPanelHeight] = useState<number | null>(null)
   const viewResizeObserverRef = useRef<ResizeObserver | null>(null)
   const selectedLayerId = useLayerStore((state) => state.selectedLayerId)
@@ -376,6 +504,13 @@ export function PropertiesSidebar() {
     }
   }, [])
 
+  const handleToggleParamGroup = useCallback((groupId: string) => {
+    setExpandedParamGroups((current) => ({
+      ...current,
+      [groupId]: !(current[groupId] ?? true),
+    }))
+  }, [])
+
   return (
     <aside className={s.root}>
       <div aria-hidden="true" className={s.measureWrap}>
@@ -385,13 +520,16 @@ export function PropertiesSidebar() {
               blendMode={selectedLayer.blendMode}
               compositeMode={selectedLayer.compositeMode}
               definitionName={selectedDefinition?.defaultName ?? selectedLayer.type}
+              expandedParamGroups={expandedParamGroups}
               hue={selectedLayer.hue}
               layerId={selectedLayer.id}
               layerKind={selectedLayer.type}
               layerName={selectedLayer.name}
               layerSubtitle={selectedAsset?.fileName ?? selectedLayer.type}
               layerType={selectedLayer.type}
+              onToggleParamGroup={handleToggleParamGroup}
               opacity={selectedLayer.opacity}
+              reduceMotion={reduceMotion}
               saturation={selectedLayer.saturation}
               setLayerBlendMode={setLayerBlendMode}
               setLayerCompositeMode={setLayerCompositeMode}
@@ -428,13 +566,16 @@ export function PropertiesSidebar() {
                   blendMode={selectedLayer.blendMode}
                   compositeMode={selectedLayer.compositeMode}
                   definitionName={selectedDefinition?.defaultName ?? selectedLayer.type}
+                  expandedParamGroups={expandedParamGroups}
                   hue={selectedLayer.hue}
                   layerId={selectedLayer.id}
                   layerKind={selectedLayer.type}
                   layerName={selectedLayer.name}
                   layerSubtitle={selectedAsset?.fileName ?? selectedLayer.type}
                   layerType={selectedLayer.type}
+                  onToggleParamGroup={handleToggleParamGroup}
                   opacity={selectedLayer.opacity}
+                  reduceMotion={reduceMotion}
                   saturation={selectedLayer.saturation}
                   setLayerBlendMode={setLayerBlendMode}
                   setLayerCompositeMode={setLayerCompositeMode}

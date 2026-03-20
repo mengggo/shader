@@ -56,6 +56,7 @@ const videoParams = [
 const gradientParams = [
   {
     defaultValue: 3,
+    group: "Points",
     key: "activePoints",
     label: "Active Points",
     max: 5,
@@ -65,12 +66,14 @@ const gradientParams = [
   },
   {
     defaultValue: "#0E0C0C",
+    group: "Points",
     key: "point1Color",
     label: "Point 1 Color",
     type: "color",
   },
   {
     defaultValue: [-0.82, -0.62] as [number, number],
+    group: "Points",
     key: "point1Position",
     label: "Point 1 Position",
     max: 1.5,
@@ -80,6 +83,7 @@ const gradientParams = [
   },
   {
     defaultValue: 0.42,
+    group: "Points",
     key: "point1Weight",
     label: "Point 1 Weight",
     max: 3,
@@ -89,12 +93,14 @@ const gradientParams = [
   },
   {
     defaultValue: "#C1FF00",
+    group: "Points",
     key: "point2Color",
     label: "Point 2 Color",
     type: "color",
   },
   {
     defaultValue: [0.22, 0.72] as [number, number],
+    group: "Points",
     key: "point2Position",
     label: "Point 2 Position",
     max: 1.5,
@@ -104,6 +110,7 @@ const gradientParams = [
   },
   {
     defaultValue: 1.55,
+    group: "Points",
     key: "point2Weight",
     label: "Point 2 Weight",
     max: 3,
@@ -113,6 +120,7 @@ const gradientParams = [
   },
   {
     defaultValue: "#B2DAD5",
+    group: "Points",
     key: "point3Color",
     label: "Point 3 Color",
     type: "color",
@@ -123,6 +131,7 @@ const gradientParams = [
   },
   {
     defaultValue: [0.88, -0.26] as [number, number],
+    group: "Points",
     key: "point3Position",
     label: "Point 3 Position",
     max: 1.5,
@@ -136,6 +145,7 @@ const gradientParams = [
   },
   {
     defaultValue: 0.64,
+    group: "Points",
     key: "point3Weight",
     label: "Point 3 Weight",
     max: 3,
@@ -149,6 +159,7 @@ const gradientParams = [
   },
   {
     defaultValue: "#3B4148",
+    group: "Points",
     key: "point4Color",
     label: "Point 4 Color",
     type: "color",
@@ -159,6 +170,7 @@ const gradientParams = [
   },
   {
     defaultValue: [-0.34, 0.52] as [number, number],
+    group: "Points",
     key: "point4Position",
     label: "Point 4 Position",
     max: 1.5,
@@ -172,6 +184,7 @@ const gradientParams = [
   },
   {
     defaultValue: 0.82,
+    group: "Points",
     key: "point4Weight",
     label: "Point 4 Weight",
     max: 3,
@@ -185,6 +198,7 @@ const gradientParams = [
   },
   {
     defaultValue: "#F3E7D0",
+    group: "Points",
     key: "point5Color",
     label: "Point 5 Color",
     type: "color",
@@ -195,6 +209,7 @@ const gradientParams = [
   },
   {
     defaultValue: [0.58, -0.76] as [number, number],
+    group: "Points",
     key: "point5Position",
     label: "Point 5 Position",
     max: 1.5,
@@ -208,6 +223,7 @@ const gradientParams = [
   },
   {
     defaultValue: 0.48,
+    group: "Points",
     key: "point5Weight",
     label: "Point 5 Weight",
     max: 3,
@@ -221,6 +237,7 @@ const gradientParams = [
   },
   {
     defaultValue: "simplex",
+    group: "Distortion",
     key: "noiseType",
     label: "Noise",
     options: [
@@ -232,6 +249,7 @@ const gradientParams = [
   },
   {
     defaultValue: 0.64,
+    group: "Distortion",
     key: "warpAmount",
     label: "Warp Amount",
     max: 1,
@@ -241,6 +259,7 @@ const gradientParams = [
   },
   {
     defaultValue: 5.56,
+    group: "Distortion",
     key: "warpScale",
     label: "Warp Scale",
     max: 6,
@@ -250,6 +269,7 @@ const gradientParams = [
   },
   {
     defaultValue: 0.69,
+    group: "Distortion",
     key: "vortexAmount",
     label: "Vortex",
     max: 1,
@@ -259,12 +279,14 @@ const gradientParams = [
   },
   {
     defaultValue: true,
+    group: "Animation",
     key: "animate",
     label: "Animate",
     type: "boolean",
   },
   {
     defaultValue: 0,
+    group: "Animation",
     key: "motionAmount",
     label: "Motion Amount",
     max: 1,
@@ -274,6 +296,7 @@ const gradientParams = [
   },
   {
     defaultValue: 0.2,
+    group: "Animation",
     key: "motionSpeed",
     label: "Motion Speed",
     max: 2,
@@ -287,6 +310,7 @@ const gradientParams = [
   },
   {
     defaultValue: 2.05,
+    group: "Distortion",
     key: "falloff",
     label: "Falloff",
     max: 4,
@@ -296,6 +320,7 @@ const gradientParams = [
   },
   {
     defaultValue: "reinhard",
+    group: "Finish",
     key: "tonemapMode",
     label: "Tonemap",
     options: [
@@ -309,6 +334,7 @@ const gradientParams = [
   },
   {
     defaultValue: 0,
+    group: "Finish",
     key: "glowStrength",
     label: "Glow Strength",
     max: 1,
@@ -318,6 +344,7 @@ const gradientParams = [
   },
   {
     defaultValue: 0,
+    group: "Finish",
     key: "glowThreshold",
     label: "Glow Threshold",
     max: 1,
@@ -327,6 +354,7 @@ const gradientParams = [
   },
   {
     defaultValue: 0.08,
+    group: "Finish",
     key: "grainAmount",
     label: "Grain",
     max: 1,
@@ -336,6 +364,7 @@ const gradientParams = [
   },
   {
     defaultValue: 0.12,
+    group: "Finish",
     key: "vignetteStrength",
     label: "Vignette Strength",
     max: 1,
@@ -345,6 +374,7 @@ const gradientParams = [
   },
   {
     defaultValue: 1.5,
+    group: "Finish",
     key: "vignetteRadius",
     label: "Vignette Radius",
     max: 1.5,
@@ -354,6 +384,7 @@ const gradientParams = [
   },
   {
     defaultValue: 1,
+    group: "Finish",
     key: "vignetteSoftness",
     label: "Vignette Softness",
     max: 1,

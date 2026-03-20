@@ -110,6 +110,76 @@
   gap: 10px;
 }
 
+.groupStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.paramGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.groupToggle {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  min-height: 0;
+  padding: 0;
+  text-align: left;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
+}
+
+.groupToggle:hover {
+  color: var(--ds-color-text-primary);
+}
+
+.groupToggle:active {
+  transform: scale(0.99);
+}
+
+.groupHeading,
+.groupHeadingStatic {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.groupHeadingStatic {
+  padding: 0 2px;
+}
+
+.groupChevron,
+.groupChevronExpanded {
+  border-bottom: 1.5px solid var(--ds-color-text-secondary);
+  border-right: 1.5px solid var(--ds-color-text-secondary);
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 7px;
+  transform: rotate(45deg) translateY(-1px);
+  transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 7px;
+}
+
+.groupChevronExpanded {
+  transform: rotate(-135deg) translate(-1px, -1px);
+}
+
+.groupBodyWrap {
+  overflow: hidden;
+}
+
 .inlineField {
   align-items: center;
   display: grid;
