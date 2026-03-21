@@ -784,7 +784,7 @@ export class CrtPass extends PassNode {
     const whiteHot = smoothstep(float(0.24), float(0.82), channelAvg).mul(
       smoothstep(float(0.55), float(0.96), neutrality),
     ).mul(
-      mix(float(0.08), float(0.42), pow(sharedDrive, float(0.72))),
+      mix(float(0.03), float(0.18), pow(sharedDrive, float(0.72))),
     )
     const sharedCore = combinedShape.add(vec3(channelMin, channelMin, channelMin)).div(4)
     const whiteCore = vec3(whiteHot, whiteHot, whiteHot).mul(sharedCore).mul(
