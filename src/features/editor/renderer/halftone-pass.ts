@@ -508,6 +508,15 @@ export class HalftonePass extends PassNode {
     let accB: Node = float(0)
     let accLuma: Node = float(0)
 
+    let accField: Node = float(0)
+    let accWeightR: Node = float(0)
+    let accWeightG: Node = float(0)
+    let accWeightB: Node = float(0)
+    let accWeightLuma: Node = float(0)
+
+    const morph = clamp(float(this.dotMorphUniform), float(0), float(1))
+    const fieldReach = this.spacingUniform.mul(morph).mul(0.6)
+
     for (let dj = -1; dj <= 1; dj++) {
       for (let di = -1; di <= 1; di++) {
         const cellRX =
@@ -549,7 +558,7 @@ export class HalftonePass extends PassNode {
         const dDiamond = abs(dx).add(abs(dy))
         const dLine = abs(dy)
 
-        const baseShapeDist = select(
+        const dist = select(
           this.shapeUniform.lessThan(float(0.5)),
           dCircle,
           select(
@@ -559,31 +568,47 @@ export class HalftonePass extends PassNode {
           )
         )
 
-        const morphAmount = float(this.dotMorphUniform)
-          .mul(smoothstep(float(0), float(0.5), effectiveValue))
-          .mul(smoothstep(float(1), float(0.5), effectiveValue))
-          .mul(4)
-        const dist = mix(
-          baseShapeDist,
-          dSquare,
-          clamp(morphAmount, float(0), float(1))
-        )
-
         const cellCov = smoothstep(radius.add(aa), radius.sub(aa), dist)
 
         const isNew = cellCov.greaterThan(accCov)
-        accR = select(isNew, float(sNode.r), accR)
-        accG = select(isNew, float(sNode.g), accG)
-        accB = select(isNew, float(sNode.b), accB)
-        accLuma = select(isNew, effectiveValue, accLuma)
-        accCov = max(cellCov, accCov)
+        const maxR = select(isNew, float(sNode.r), accR)
+        const maxG = select(isNew, float(sNode.g), accG)
+        const maxB = select(isNew, float(sNode.b), accB)
+        const maxLuma = select(isNew, effectiveValue, accLuma)
+        const maxCov = max(cellCov, accCov)
+
+        const fieldRadius = max(radius.add(fieldReach), float(0.001))
+        const cellField = clamp(float(1).sub(dist.div(fieldRadius)), float(0), float(1))
+        const cellFieldSq = cellField.mul(cellField)
+
+        accWeightR = accWeightR.add(float(sNode.r).mul(cellFieldSq))
+        accWeightG = accWeightG.add(float(sNode.g).mul(cellFieldSq))
+        accWeightB = accWeightB.add(float(sNode.b).mul(cellFieldSq))
+        accWeightLuma = accWeightLuma.add(effectiveValue.mul(cellFieldSq))
+        accField = accField.add(cellFieldSq)
+
+        accR = maxR
+        accG = maxG
+        accB = maxB
+        accLuma = maxLuma
+        accCov = maxCov
       }
     }
 
+    const metaEdge = max(float(0.01), aa.div(this.spacingUniform).mul(0.5))
+    const metaCov = smoothstep(float(0.5).sub(metaEdge), float(0.5).add(metaEdge), accField)
+    const fieldWeight = max(accField, float(0.001))
+
+    const finalCov = mix(accCov, metaCov, morph)
+    const finalR = mix(accR, accWeightR.div(fieldWeight), morph)
+    const finalG = mix(accG, accWeightG.div(fieldWeight), morph)
+    const finalB = mix(accB, accWeightB.div(fieldWeight), morph)
+    const finalLuma = mix(accLuma, accWeightLuma.div(fieldWeight), morph)
+
     return {
-      color: vec3(accR, accG, accB),
-      coverage: accCov,
-      luma: accLuma,
+      color: vec3(finalR, finalG, finalB),
+      coverage: finalCov,
+      luma: finalLuma,
     }
   }
 }
