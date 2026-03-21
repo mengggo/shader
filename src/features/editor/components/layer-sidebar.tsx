@@ -23,7 +23,7 @@ import { useEditorStore } from "@/store/editorStore"
 import { useLayerStore } from "@/store/layerStore"
 import s from "./layer-sidebar.module.css"
 
-type AddLayerAction = "ascii" | "crt" | "dithering" | "gradient" | "image" | "particle-grid" | "pixel-sorting" | "video"
+type AddLayerAction = "ascii" | "crt" | "dithering" | "gradient" | "halftone" | "image" | "particle-grid" | "pixel-sorting" | "video"
 type LayerAction = "delete" | "reset"
 
 const addLayerOptions = [
@@ -80,6 +80,15 @@ const addLayerOptions = [
       </span>
     ),
     value: "dithering",
+  },
+  {
+    label: (
+      <span className={s.menuButton}>
+        <Sparkle size={14} weight="regular" />
+        Halftone
+      </span>
+    ),
+    value: "halftone",
   },
   {
     label: (
@@ -242,6 +251,8 @@ export function LayerSidebar() {
       handleAddAscii()
     } else if (action === "crt") {
       addLayer("crt")
+    } else if (action === "halftone") {
+      addLayer("halftone")
     } else if (action === "particle-grid") {
       addLayer("particle-grid")
     } else if (action === "pixel-sorting") {

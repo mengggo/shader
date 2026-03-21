@@ -1,6 +1,7 @@
 import { AsciiPass } from "@/features/editor/renderer/ascii-pass"
 import { CrtPass } from "@/features/editor/renderer/crt-pass"
 import { DitheringPass } from "@/features/editor/renderer/dithering-pass"
+import { HalftonePass } from "@/features/editor/renderer/halftone-pass"
 import { ParticleGridPass } from "@/features/editor/renderer/particle-grid-pass"
 import { PassNode } from "@/features/editor/renderer/pass-node"
 import { PixelSortingPass } from "@/features/editor/renderer/pixel-sorting-pass"
@@ -14,6 +15,8 @@ export function createPassNode(layerId: string, type: EffectLayerType): PassNode
       return new CrtPass(layerId)
     case "dithering":
       return new DitheringPass(layerId)
+    case "halftone":
+      return new HalftonePass(layerId)
     case "particle-grid":
       return new ParticleGridPass(layerId)
     case "pixel-sorting":

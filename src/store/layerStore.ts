@@ -239,6 +239,47 @@ function getDitheringPresetDefaults(
   }
 }
 
+function getHalftonePresetDefaults(
+  preset: string
+): Record<string, ParameterValue> | null {
+  switch (preset) {
+    case "process":
+      return {
+        inkCyan: "#00AEEF",
+        inkMagenta: "#EC008C",
+        inkYellow: "#FFF200",
+        inkKey: "#1a1a1a",
+        paperColor: "#F5F5F0",
+      }
+    case "risograph":
+      return {
+        inkCyan: "#0078BF",
+        inkMagenta: "#FF48B0",
+        inkYellow: "#FFE800",
+        inkKey: "#000000",
+        paperColor: "#F2F0E6",
+      }
+    case "newspaper":
+      return {
+        inkCyan: "#1A6B8A",
+        inkMagenta: "#8C3A5E",
+        inkYellow: "#C4A832",
+        inkKey: "#2B2B2B",
+        paperColor: "#F0E6D0",
+      }
+    case "vintage":
+      return {
+        inkCyan: "#3A7CA5",
+        inkMagenta: "#A0506A",
+        inkYellow: "#D4A843",
+        inkKey: "#3C3228",
+        paperColor: "#EDE4D4",
+      }
+    default:
+      return null
+  }
+}
+
 export function cloneLayerList(layers: EditorLayer[]): EditorLayer[] {
   return layers.map((layer) => ({
     ...layer,
@@ -541,6 +582,18 @@ export const useLayerStore = create<LayerStore>((set, get) => ({
           typeof value === "string"
         ) {
           const defaults = getDitheringPresetDefaults(value)
+
+          if (defaults) {
+            Object.assign(nextParams, defaults)
+          }
+        }
+
+        if (
+          layer.type === "halftone" &&
+          key === "preset" &&
+          typeof value === "string"
+        ) {
+          const defaults = getHalftonePresetDefaults(value)
 
           if (defaults) {
             Object.assign(nextParams, defaults)
