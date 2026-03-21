@@ -81,6 +81,145 @@ function getGradientNoiseDefaults(noiseType: string): {
   }
 }
 
+function getGradientPresetDefaults(
+  preset: string
+): Record<string, ParameterValue> | null {
+  switch (preset) {
+    case "aurora":
+      return {
+        activePoints: 5,
+        point1Color: "#ed6a5a",
+        point1Position: [-0.8, -0.6],
+        point1Weight: 1.0,
+        point2Color: "#f4f1bb",
+        point2Position: [0.2, 0.7],
+        point2Weight: 1.0,
+        point3Color: "#9bc1bc",
+        point3Position: [0.9, -0.3],
+        point3Weight: 1.0,
+        point4Color: "#5d576b",
+        point4Position: [-0.4, 0.5],
+        point4Weight: 1.0,
+        point5Color: "#e6ebe0",
+        point5Position: [0.6, -0.8],
+        point5Weight: 1.0,
+        noiseType: "simplex",
+        warpAmount: 0.8,
+        warpScale: 4.0,
+        warpIterations: 3,
+        warpDecay: 1.0,
+        warpBias: 0.65,
+        vortexAmount: 0.3,
+        falloff: 3.5,
+        tonemapMode: "totos",
+        glowStrength: 0.0,
+        glowThreshold: 0.0,
+        grainAmount: 0.08,
+        vignetteStrength: 0.0,
+        vignetteRadius: 1.5,
+        vignetteSoftness: 1,
+      }
+    case "sunset":
+      return {
+        activePoints: 4,
+        point1Color: "#1a0a2e",
+        point1Position: [-0.6, -0.8],
+        point1Weight: 0.8,
+        point2Color: "#c4420a",
+        point2Position: [0.3, 0.4],
+        point2Weight: 1.2,
+        point3Color: "#e8821a",
+        point3Position: [0.8, 0.7],
+        point3Weight: 0.9,
+        point4Color: "#4a1942",
+        point4Position: [-0.5, 0.3],
+        point4Weight: 1.0,
+        noiseType: "simplex",
+        warpAmount: 0.6,
+        warpScale: 3.5,
+        warpIterations: 2,
+        warpDecay: 1.2,
+        warpBias: 0.5,
+        vortexAmount: 0.0,
+        falloff: 3.5,
+        tonemapMode: "totos",
+        glowStrength: 0.0,
+        glowThreshold: 0.0,
+        grainAmount: 0.08,
+        vignetteStrength: 0.15,
+        vignetteRadius: 1.4,
+        vignetteSoftness: 0.8,
+      }
+    case "deep-ocean":
+      return {
+        activePoints: 4,
+        point1Color: "#020b1a",
+        point1Position: [0.0, -0.7],
+        point1Weight: 0.8,
+        point2Color: "#0a3d62",
+        point2Position: [-0.6, 0.4],
+        point2Weight: 1.2,
+        point3Color: "#3c8dbc",
+        point3Position: [0.7, 0.1],
+        point3Weight: 0.9,
+        point4Color: "#061224",
+        point4Position: [0.3, 0.8],
+        point4Weight: 1.0,
+        noiseType: "turbulence",
+        warpAmount: 0.04,
+        warpScale: 0.28,
+        warpIterations: 3,
+        warpDecay: 0.8,
+        warpBias: 0.4,
+        vortexAmount: 0.35,
+        falloff: 3.5,
+        tonemapMode: "totos",
+        glowStrength: 0.0,
+        glowThreshold: 0.0,
+        grainAmount: 0.06,
+        vignetteStrength: 0.2,
+        vignetteRadius: 1.3,
+        vignetteSoftness: 0.7,
+      }
+    case "neon-glow":
+      return {
+        activePoints: 5,
+        point1Color: "#0a0a0a",
+        point1Position: [0.0, 0.0],
+        point1Weight: 0.6,
+        point2Color: "#b80050",
+        point2Position: [-0.7, -0.5],
+        point2Weight: 1.3,
+        point3Color: "#0088aa",
+        point3Position: [0.8, 0.3],
+        point3Weight: 1.1,
+        point4Color: "#220033",
+        point4Position: [0.2, -0.8],
+        point4Weight: 0.9,
+        point5Color: "#1a0a2e",
+        point5Position: [-0.5, 0.7],
+        point5Weight: 1.0,
+        noiseType: "simplex",
+        warpAmount: 0.7,
+        warpScale: 4.0,
+        warpIterations: 3,
+        warpDecay: 1.0,
+        warpBias: 0.35,
+        vortexAmount: -0.25,
+        falloff: 3.5,
+        tonemapMode: "totos",
+        glowStrength: 0.0,
+        glowThreshold: 0.0,
+        grainAmount: 0.05,
+        vignetteStrength: 0.1,
+        vignetteRadius: 1.5,
+        vignetteSoftness: 1,
+      }
+    default:
+      return null
+  }
+}
+
 function getDitheringPresetDefaults(
   preset: string
 ): Record<string, ParameterValue> | null {
@@ -381,6 +520,18 @@ export const useLayerStore = create<LayerStore>((set, get) => ({
           if (defaults) {
             nextParams.warpAmount = defaults.warpAmount
             nextParams.warpScale = defaults.warpScale
+          }
+        }
+
+        if (
+          layer.type === "gradient" &&
+          key === "preset" &&
+          typeof value === "string"
+        ) {
+          const defaults = getGradientPresetDefaults(value)
+
+          if (defaults) {
+            Object.assign(nextParams, defaults)
           }
         }
 

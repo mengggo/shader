@@ -1,8 +1,8 @@
 import {
-  Fn,
   clamp,
   cos,
   dot,
+  Fn,
   float,
   max,
   mix,
@@ -10,19 +10,24 @@ import {
   select,
   sin,
   smoothstep,
+  type TSLNode,
   uniform,
   uv,
   vec2,
   vec3,
   vec4,
-  type TSLNode,
 } from "three/tsl"
-import { cinematicTonemap, acesTonemap, reinhardTonemap, totosTonemap } from "@/features/editor/shaders/tsl/color/tonemapping"
+import { PassNode } from "@/features/editor/renderer/pass-node"
+import {
+  acesTonemap,
+  cinematicTonemap,
+  reinhardTonemap,
+  totosTonemap,
+} from "@/features/editor/shaders/tsl/color/tonemapping"
 import { perlinNoise3d } from "@/features/editor/shaders/tsl/noise/perlin-noise-3d"
 import { simplexNoise3d } from "@/features/editor/shaders/tsl/noise/simplex-noise-3d"
 import { turbulence } from "@/features/editor/shaders/tsl/noise/turbulence"
 import { grainTexturePattern } from "@/features/editor/shaders/tsl/patterns/grain-texture-pattern"
-import { PassNode } from "@/features/editor/renderer/pass-node"
 import type { LayerParameterValues } from "@/features/editor/types"
 
 type Node = TSLNode
@@ -72,11 +77,14 @@ export class GradientPass extends PassNode {
   private readonly vignetteStrengthUniform: Node
   private readonly vortexAmountUniform: Node
   private readonly warpAmountUniform: Node
+  private readonly warpBiasUniform: Node
+  private readonly warpDecayUniform: Node
   private readonly warpScaleUniform: Node
 
   private isAnimated = true
   private noiseMode: NoiseMode = "simplex"
   private tonemapMode: TonemapMode = "aces"
+  private warpIterations = 1
 
   constructor(layerId: string) {
     super(layerId)
@@ -85,6 +93,8 @@ export class GradientPass extends PassNode {
     this.aspectUniform = uniform(1)
     this.activePointsUniform = uniform(5)
     this.warpAmountUniform = uniform(0.18)
+    this.warpBiasUniform = uniform(0.5)
+    this.warpDecayUniform = uniform(1)
     this.warpScaleUniform = uniform(1.4)
     this.vortexAmountUniform = uniform(0.12)
     this.motionAmountUniform = uniform(0.18)
@@ -115,32 +125,56 @@ export class GradientPass extends PassNode {
         ? Math.max(2, Math.min(5, Math.round(params.activePoints)))
         : 5
     const warpAmount =
-      typeof params.warpAmount === "number" ? Math.max(0, params.warpAmount) : 0.18
+      typeof params.warpAmount === "number"
+        ? Math.max(0, params.warpAmount)
+        : 0.18
     const warpScale =
-      typeof params.warpScale === "number" ? Math.max(0.05, params.warpScale) : 1.4
+      typeof params.warpScale === "number"
+        ? Math.max(0.05, params.warpScale)
+        : 1.4
+    const warpIterations =
+      typeof params.warpIterations === "number"
+        ? Math.max(1, Math.min(5, Math.round(params.warpIterations)))
+        : 1
+    const warpDecay =
+      typeof params.warpDecay === "number" ? Math.max(0.1, params.warpDecay) : 1
+    const warpBias =
+      typeof params.warpBias === "number"
+        ? Math.max(0, Math.min(1, params.warpBias))
+        : 0.5
     const vortexAmount =
       typeof params.vortexAmount === "number" ? params.vortexAmount : 0.12
     const motionAmount =
-      typeof params.motionAmount === "number" ? Math.max(0, params.motionAmount) : 0.18
+      typeof params.motionAmount === "number"
+        ? Math.max(0, params.motionAmount)
+        : 0.18
     const motionSpeed =
-      typeof params.motionSpeed === "number" ? Math.max(0, params.motionSpeed) : 0.2
+      typeof params.motionSpeed === "number"
+        ? Math.max(0, params.motionSpeed)
+        : 0.2
     const animateEnabled = params.animate !== false
     const falloff =
       typeof params.falloff === "number" ? Math.max(0.25, params.falloff) : 1.85
     const glowStrength =
-      typeof params.glowStrength === "number" ? Math.max(0, params.glowStrength) : 0.18
+      typeof params.glowStrength === "number"
+        ? Math.max(0, params.glowStrength)
+        : 0.18
     const glowThreshold =
       typeof params.glowThreshold === "number"
         ? Math.max(0, Math.min(1, params.glowThreshold))
         : 0.62
     const grainAmount =
-      typeof params.grainAmount === "number" ? Math.max(0, params.grainAmount) : 0.03
+      typeof params.grainAmount === "number"
+        ? Math.max(0, params.grainAmount)
+        : 0.03
     const vignetteStrength =
       typeof params.vignetteStrength === "number"
         ? Math.max(0, Math.min(1, params.vignetteStrength))
         : 0.18
     const vignetteRadius =
-      typeof params.vignetteRadius === "number" ? Math.max(0.01, params.vignetteRadius) : 0.9
+      typeof params.vignetteRadius === "number"
+        ? Math.max(0.01, params.vignetteRadius)
+        : 0.9
     const vignetteSoftness =
       typeof params.vignetteSoftness === "number"
         ? Math.max(0.01, params.vignetteSoftness)
@@ -149,6 +183,8 @@ export class GradientPass extends PassNode {
     this.activePointsUniform.value = activePoints
     this.animateUniform.value = animateEnabled ? 1 : 0
     this.warpAmountUniform.value = warpAmount
+    this.warpBiasUniform.value = warpBias
+    this.warpDecayUniform.value = warpDecay
     this.warpScaleUniform.value = warpScale
     this.vortexAmountUniform.value = vortexAmount
     this.motionAmountUniform.value = motionAmount
@@ -167,9 +203,11 @@ export class GradientPass extends PassNode {
       const positionKey = `point${point}Position`
       const weightKey = `point${point}Weight`
       const rgb = hexToRgb(
-        typeof params[colorKey] === "string" ? params[colorKey] : "#ffffff",
+        typeof params[colorKey] === "string" ? params[colorKey] : "#ffffff"
       )
-      const position = Array.isArray(params[positionKey]) ? params[positionKey] : [0, 0]
+      const position = Array.isArray(params[positionKey])
+        ? params[positionKey]
+        : [0, 0]
 
       this.pointColorUniforms[index]!.red.value = rgb[0]
       this.pointColorUniforms[index]!.green.value = rgb[1]
@@ -177,7 +215,9 @@ export class GradientPass extends PassNode {
       this.pointPositionUniforms[index]!.x.value = position[0] ?? 0
       this.pointPositionUniforms[index]!.y.value = position[1] ?? 0
       this.pointWeightUniforms[index]!.value =
-        typeof params[weightKey] === "number" ? Math.max(0, params[weightKey]) : 1
+        typeof params[weightKey] === "number"
+          ? Math.max(0, params[weightKey])
+          : 1
     }
 
     let nextTonemapMode: TonemapMode = "aces"
@@ -208,16 +248,27 @@ export class GradientPass extends PassNode {
         break
     }
 
-    this.isAnimated = animateEnabled && motionSpeed > 0 && (motionAmount > 0 || warpAmount > 0)
+    this.isAnimated =
+      animateEnabled && motionSpeed > 0 && (motionAmount > 0 || warpAmount > 0)
+
+    let needsRebuild = false
 
     if (nextNoiseMode !== this.noiseMode) {
       this.noiseMode = nextNoiseMode
-      this.rebuildEffectNode()
-      return
+      needsRebuild = true
     }
 
     if (nextTonemapMode !== this.tonemapMode) {
       this.tonemapMode = nextTonemapMode
+      needsRebuild = true
+    }
+
+    if (warpIterations !== this.warpIterations) {
+      this.warpIterations = warpIterations
+      needsRebuild = true
+    }
+
+    if (needsRebuild) {
       this.rebuildEffectNode()
     }
   }
@@ -240,6 +291,8 @@ export class GradientPass extends PassNode {
       this.aspectUniform &&
       this.activePointsUniform &&
       this.warpAmountUniform &&
+      this.warpBiasUniform &&
+      this.warpDecayUniform &&
       this.warpScaleUniform &&
       this.vortexAmountUniform &&
       this.motionAmountUniform &&
@@ -264,46 +317,70 @@ export class GradientPass extends PassNode {
     return Fn(() => {
       const baseUv = vec2(
         uv().x.mul(2).sub(1).mul(this.aspectUniform),
-        float(1).sub(uv().y).mul(2).sub(1),
+        float(1).sub(uv().y).mul(2).sub(1)
       )
-      const vignetteUv = vec2(uv().x.mul(2).sub(1), float(1).sub(uv().y).mul(2).sub(1))
-      const time = this.timeUniform.mul(this.motionSpeedUniform).mul(this.animateUniform)
-      const warpInput = baseUv.mul(this.warpScaleUniform)
-      let warpX: Node
-      let warpY: Node
+      const vignetteUv = vec2(
+        uv().x.mul(2).sub(1),
+        float(1).sub(uv().y).mul(2).sub(1)
+      )
+      const time = this.timeUniform
+        .mul(this.motionSpeedUniform)
+        .mul(this.animateUniform)
+      const warpedUv = baseUv.toVar()
+      const biasX = this.warpBiasUniform.mul(2)
+      const biasY = float(1).sub(this.warpBiasUniform).mul(2)
 
-      switch (this.noiseMode) {
-        case "perlin":
-          warpX = perlinNoise3d(vec3(warpInput, time.add(17.3)))
-          warpY = perlinNoise3d(vec3(warpInput.add(vec2(13.7, 7.1)), time.add(41.9)))
-          break
-        case "turbulence":
-          warpX = turbulence(
-            vec3(warpInput.add(vec2(0.0, 0.0)), 0.0),
-            time.mul(2),
-            { _amp: 0.7, _exp: 1.4, _freq: 2, _num: 3, _speed: 0.3 },
-          ).x
-          warpY = turbulence(
-            vec3(warpInput.add(vec2(5.4, 8.1)), 0.0),
-            time.mul(2).add(3.7),
-            { _amp: 0.7, _exp: 1.4, _freq: 2, _num: 3, _speed: 0.3 },
-          ).x
-          break
-        default:
-          warpX = simplexNoise3d(vec3(warpInput, time.add(17.3)))
-          warpY = simplexNoise3d(vec3(warpInput.add(vec2(13.7, 7.1)), time.add(41.9)))
-          break
+      for (let i = 1; i <= this.warpIterations; i += 1) {
+        const strength = this.warpAmountUniform.div(
+          pow(float(i), this.warpDecayUniform)
+        )
+        const warpInput = warpedUv.mul(this.warpScaleUniform)
+        const timeOffsetX = time.mul(0.1).add(float(i * 100))
+        const timeOffsetY = time.mul(0.1).add(float(i * 200))
+        let noiseX: Node
+        let noiseY: Node
+
+        switch (this.noiseMode) {
+          case "perlin":
+            noiseX = perlinNoise3d(vec3(warpInput, timeOffsetX))
+            noiseY = perlinNoise3d(
+              vec3(warpInput.add(vec2(13.7, 7.1)), timeOffsetY)
+            )
+            break
+          case "turbulence":
+            noiseX = turbulence(vec3(warpInput, 0.0), timeOffsetX.mul(20), {
+              _amp: 0.7,
+              _exp: 1.4,
+              _freq: 2,
+              _num: 3,
+              _speed: 0.3,
+            }).x
+            noiseY = turbulence(
+              vec3(warpInput.add(vec2(5.4, 8.1)), 0.0),
+              timeOffsetY.mul(20),
+              { _amp: 0.7, _exp: 1.4, _freq: 2, _num: 3, _speed: 0.3 }
+            ).x
+            break
+          default:
+            noiseX = simplexNoise3d(vec3(warpInput, timeOffsetX))
+            noiseY = simplexNoise3d(
+              vec3(warpInput.add(vec2(13.7, 7.1)), timeOffsetY)
+            )
+            break
+        }
+
+        warpedUv.x.addAssign(strength.mul(noiseX).mul(biasX))
+        warpedUv.y.addAssign(strength.mul(noiseY).mul(biasY))
       }
 
-      const warpedUv = vec2(
-        baseUv.x.add(warpX.mul(this.warpAmountUniform)),
-        baseUv.y.add(warpY.mul(this.warpAmountUniform)),
-      )
-      const distanceFromCenter = max(dot(warpedUv, warpedUv), float(1e-4)).sqrt()
+      const distanceFromCenter = max(
+        dot(warpedUv, warpedUv),
+        float(1e-4)
+      ).sqrt()
       const vortexAngle = distanceFromCenter.mul(this.vortexAmountUniform)
       const rotatedUv = vec2(
         warpedUv.x.mul(cos(vortexAngle)).sub(warpedUv.y.mul(sin(vortexAngle))),
-        warpedUv.x.mul(sin(vortexAngle)).add(warpedUv.y.mul(cos(vortexAngle))),
+        warpedUv.x.mul(sin(vortexAngle)).add(warpedUv.y.mul(cos(vortexAngle)))
       )
 
       const finalColor = vec3(0).toVar()
@@ -314,26 +391,32 @@ export class GradientPass extends PassNode {
         const active = select(
           this.activePointsUniform.greaterThanEqual(pointIndex),
           float(1),
-          float(0),
+          float(0)
         )
         const pointPosition = vec2(
           this.pointPositionUniforms[index]!.x.add(
-            sin(time.mul(pointIndex.mul(0.73)).add(pointIndex)).mul(this.motionAmountUniform),
+            sin(time.mul(pointIndex.mul(0.73)).add(pointIndex)).mul(
+              this.motionAmountUniform
+            )
           ),
           this.pointPositionUniforms[index]!.y.add(
             cos(time.mul(pointIndex.mul(0.41)).add(pointIndex.mul(1.7))).mul(
-              this.motionAmountUniform,
-            ),
-          ),
+              this.motionAmountUniform
+            )
+          )
         )
         const delta = rotatedUv.sub(pointPosition)
         const distance = max(dot(delta, delta), float(1e-4)).sqrt()
-        const baseWeight = float(1).div(max(pow(distance, this.falloffUniform), float(1e-4)))
-        const weighted = baseWeight.mul(this.pointWeightUniforms[index]!).mul(active)
+        const baseWeight = float(1).div(
+          max(pow(distance, this.falloffUniform), float(1e-4))
+        )
+        const weighted = baseWeight
+          .mul(this.pointWeightUniforms[index]!)
+          .mul(active)
         const color = vec3(
           this.pointColorUniforms[index]!.red,
           this.pointColorUniforms[index]!.green,
-          this.pointColorUniforms[index]!.blue,
+          this.pointColorUniforms[index]!.blue
         )
 
         finalColor.addAssign(color.mul(weighted))
@@ -361,25 +444,34 @@ export class GradientPass extends PassNode {
 
       const luma = dot(finalColor, vec3(0.2126, 0.7152, 0.0722))
       const glow = smoothstep(this.glowThresholdUniform, float(1), luma).mul(
-        this.glowStrengthUniform,
+        this.glowStrengthUniform
       )
       finalColor.addAssign(vec3(glow, glow, glow))
 
-      const grain = grainTexturePattern(uv()).sub(0.5).mul(this.grainAmountUniform)
+      const grain = grainTexturePattern(uv())
+        .sub(0.5)
+        .mul(this.grainAmountUniform)
       finalColor.addAssign(vec3(grain, grain, grain))
 
-      const vignetteDistance = max(dot(vignetteUv, vignetteUv), float(1e-4)).sqrt()
+      const vignetteDistance = max(
+        dot(vignetteUv, vignetteUv),
+        float(1e-4)
+      ).sqrt()
       const vignette = smoothstep(
         this.vignetteRadiusUniform,
         this.vignetteRadiusUniform.sub(this.vignetteSoftnessUniform),
-        vignetteDistance,
+        vignetteDistance
       )
       const vignetteMix = mix(float(1), vignette, this.vignetteStrengthUniform)
       finalColor.mulAssign(vignetteMix)
 
       return vec4(
-        clamp(finalColor, vec3(float(0), float(0), float(0)), vec3(float(1), float(1), float(1))),
-        float(1),
+        clamp(
+          finalColor,
+          vec3(float(0), float(0), float(0)),
+          vec3(float(1), float(1), float(1))
+        ),
+        float(1)
       )
     })()
   }
