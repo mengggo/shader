@@ -39,22 +39,124 @@ function formatDiagnostics(
     .join("\n\n")
 }
 
-function assertImportlessSource(sourceCode: string) {
+function createSourceFile(
+  compiler: typeof import("typescript"),
+  fileName: string,
+  sourceCode: string
+) {
+  return compiler.createSourceFile(
+    fileName,
+    sourceCode,
+    compiler.ScriptTarget.ES2020,
+    true,
+    getScriptKind(compiler, fileName)
+  )
+}
+
+function getSourceFileDiagnostics(sourceFile: import("typescript").SourceFile) {
+  return (
+    sourceFile as import("typescript").SourceFile & {
+      parseDiagnostics?: readonly import("typescript").Diagnostic[]
+    }
+  ).parseDiagnostics
+}
+
+function isDirectiveStatement(
+  compiler: typeof import("typescript"),
+  statement: import("typescript").Statement
+) {
+  return (
+    compiler.isExpressionStatement(statement) &&
+    compiler.isStringLiteral(statement.expression) &&
+    (statement.expression.text === "use client" ||
+      statement.expression.text === "use server")
+  )
+}
+
+function statementContainsJsx(
+  compiler: typeof import("typescript"),
+  statement: import("typescript").Statement
+): boolean {
+  let containsJsx = false
+
+  const visit = (node: import("typescript").Node) => {
+    if (
+      compiler.isJsxElement(node) ||
+      compiler.isJsxSelfClosingElement(node) ||
+      compiler.isJsxFragment(node)
+    ) {
+      containsJsx = true
+      return
+    }
+
+    compiler.forEachChild(node, visit)
+  }
+
+  compiler.forEachChild(statement, visit)
+
+  return containsJsx
+}
+
+async function sanitizeCustomShaderSource({
+  fileName,
+  sourceCode,
+}: {
+  fileName: string
+  sourceCode: string
+}) {
+  const compiler = await getTypeScript()
+  const sourceFile = createSourceFile(compiler, fileName, sourceCode)
+  const diagnosticsMessage = formatDiagnostics(
+    compiler,
+    getSourceFileDiagnostics(sourceFile)
+  )
+
+  if (diagnosticsMessage) {
+    throw new Error(diagnosticsMessage)
+  }
+
+  const statements = sourceFile.statements.filter((statement) => {
+    if (isDirectiveStatement(compiler, statement)) {
+      return false
+    }
+
+    if (
+      compiler.isImportDeclaration(statement) ||
+      compiler.isImportEqualsDeclaration(statement) ||
+      compiler.isExportAssignment(statement)
+    ) {
+      return false
+    }
+
+    if (
+      compiler.isExportDeclaration(statement) &&
+      statement.moduleSpecifier !== undefined
+    ) {
+      return false
+    }
+
+    if (statementContainsJsx(compiler, statement)) {
+      return false
+    }
+
+    return true
+  })
+
+  const sanitizedFile = compiler.factory.updateSourceFile(
+    sourceFile,
+    statements
+  )
+  const printer = compiler.createPrinter({
+    newLine: compiler.NewLineKind.LineFeed,
+  })
+
+  return `${printer.printFile(sanitizedFile).trim()}\n`
+}
+
+function assertNoExplicitImports(sourceCode: string) {
   if (/^\s*import[\s{*]/m.test(sourceCode)) {
     throw new Error(
-      "Custom shader sketches cannot use import statements. Use the injected prelude helpers instead."
-    )
-  }
-
-  if (/^\s*export\s+\*\s+from\s+/m.test(sourceCode)) {
-    throw new Error(
-      "Custom shader sketches cannot re-export from other modules."
-    )
-  }
-
-  if (/^\s*export\s*{[^}]+}\s*from\s+/m.test(sourceCode)) {
-    throw new Error(
-      "Custom shader sketches cannot re-export from other modules."
+      "Custom shader imports are resolved through the injected prelude. Remove the imports or paste the whole sketch file and let the custom shader layer strip them."
     )
   }
 }
@@ -85,20 +187,10 @@ export async function formatCustomShaderSource({
 }): Promise<string> {
   const compiler = await getTypeScript()
   const resolvedFileName = fileName ?? "custom-shader.ts"
-  const sourceFile = compiler.createSourceFile(
-    resolvedFileName,
-    sourceCode,
-    compiler.ScriptTarget.ES2020,
-    true,
-    getScriptKind(compiler, resolvedFileName)
-  )
+  const sourceFile = createSourceFile(compiler, resolvedFileName, sourceCode)
   const diagnosticsMessage = formatDiagnostics(
     compiler,
-    (
-      sourceFile as import("typescript").SourceFile & {
-        parseDiagnostics?: readonly import("typescript").Diagnostic[]
-      }
-    ).parseDiagnostics
+    getSourceFileDiagnostics(sourceFile)
   )
 
   if (diagnosticsMessage) {
@@ -125,21 +217,26 @@ export async function compileCustomShaderModule({
   force?: boolean
   sourceCode: string
 }): Promise<CompiledShaderModule> {
-  assertImportlessSource(sourceCode)
+  const resolvedFileName = fileName ?? "custom-shader.ts"
+  const sanitizedSourceCode = await sanitizeCustomShaderSource({
+    fileName: resolvedFileName,
+    sourceCode,
+  })
+  assertNoExplicitImports(sanitizedSourceCode)
 
-  const cacheKey = `${entryExport}\n${fileName ?? ""}\n${sourceCode}`
+  const cacheKey = `${entryExport}\n${resolvedFileName}\n${sanitizedSourceCode}`
   let outputText = !force ? (TRANSPILED_CACHE.get(cacheKey) ?? null) : null
 
   const compiler = await getTypeScript()
   if (!outputText) {
-    const transpiled = compiler.transpileModule(sourceCode, {
+    const transpiled = compiler.transpileModule(sanitizedSourceCode, {
       compilerOptions: {
         esModuleInterop: true,
         jsx: compiler.JsxEmit.ReactJSX,
         module: compiler.ModuleKind.CommonJS,
         target: compiler.ScriptTarget.ES2020,
       },
-      fileName: fileName ?? "custom-shader.ts",
+      fileName: resolvedFileName,
       reportDiagnostics: true,
     })
     const diagnosticsMessage = formatDiagnostics(

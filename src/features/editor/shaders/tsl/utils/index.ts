@@ -23,6 +23,7 @@ export { grainTexturePattern } from "@/features/editor/shaders/tsl/patterns/grai
 export { repeatingPattern } from "@/features/editor/shaders/tsl/patterns/repeating-pattern"
 export { rotate } from "@/features/editor/shaders/tsl/utils/rotate"
 export { screenAspectUV } from "@/features/editor/shaders/tsl/utils/screen-aspect-uv"
+export { sdBox2d } from "@/features/editor/shaders/tsl/utils/sd-box-2d"
 export { sdDiamond } from "@/features/editor/shaders/tsl/utils/sd-diamond"
 export { sdRhombus } from "@/features/editor/shaders/tsl/utils/sd-rhombus"
 export { sdSphere } from "@/features/editor/shaders/tsl/utils/sd-sphere"
