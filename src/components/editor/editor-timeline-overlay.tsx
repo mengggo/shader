@@ -287,7 +287,7 @@ function TimelineTransport({
     >
       <div className="inline-flex items-center gap-1">
         <IconButton
-          aria-label={isPlaying ? "Pause playback" : "Play timeline"}
+          aria-label={isPlaying ? "暂停" : "播放"}
           className="h-7 w-7"
           onClick={onTogglePlaying}
           variant="default"
@@ -299,7 +299,7 @@ function TimelineTransport({
           )}
         </IconButton>
         <IconButton
-          aria-label="Stop playback"
+          aria-label="停止"
           className="h-7 w-7"
           onClick={onStop}
           variant="default"
@@ -315,7 +315,7 @@ function TimelineTransport({
 
       <div className="inline-flex items-center gap-1">
         <IconButton
-          aria-label={loop ? "Disable loop" : "Enable loop"}
+          aria-label={loop ? "关闭循环" : "开启循环"}
           className={cn(
             "h-7 w-auto gap-1.5 px-[10px]",
             loop && "bg-white/12 text-[var(--ds-color-text-primary)]"
@@ -324,11 +324,11 @@ function TimelineTransport({
           variant={loop ? "active" : "default"}
         >
           <Typography as="span" tone="secondary" variant="monoSm">
-            Loop
+            循环
           </Typography>
         </IconButton>
         <IconButton
-          aria-label={autoKey ? "Disable auto-key" : "Enable auto-key"}
+          aria-label={autoKey ? "关闭自动关键帧" : "开启自动关键帧"}
           className={cn(
             "h-7 w-auto gap-1.5 px-[10px]",
             autoKey && "bg-white/12 text-[var(--ds-color-text-primary)]"
@@ -338,7 +338,7 @@ function TimelineTransport({
         >
           <CircleIcon size={10} weight={autoKey ? "fill" : "regular"} />
           <Typography as="span" tone="secondary" variant="monoSm">
-            Auto-Key
+            自动 K 帧
           </Typography>
         </IconButton>
       </div>
@@ -350,10 +350,10 @@ function TimelineTransport({
 
       <div className="inline-flex items-center gap-2">
         <Typography as="span" tone="secondary" variant="monoSm">
-          Dur
+          时长
         </Typography>
         <NumberInput
-          aria-label="Timeline duration in seconds"
+          aria-label="时间轴时长（秒）"
           size={2}
           className={cn(
             "min-h-7 appearance-none rounded-[var(--ds-radius-icon)] border border-[var(--ds-border-divider)] bg-[var(--ds-color-surface-control)] px-[10px] text-center font-[var(--ds-font-mono)] text-[12px] leading-4 text-[var(--ds-color-text-primary)] outline-none transition-[background-color,border-color] duration-160 ease-[var(--ease-out-cubic)] focus:border-[var(--ds-border-hover)]",
@@ -381,7 +381,7 @@ function TimelineTransport({
           tone="secondary"
           variant="monoSm"
         >
-          sec
+          秒
         </Typography>
       </div>
 
@@ -396,7 +396,7 @@ function TimelineTransport({
         </Typography>
         <IconButton
           aria-label={
-            expanded ? "Collapse timeline panel" : "Expand timeline panel"
+            expanded ? "收起时间轴" : "展开时间轴"
           }
           className="h-7 w-7"
           onClick={onToggleExpanded}

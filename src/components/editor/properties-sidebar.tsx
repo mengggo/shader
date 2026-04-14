@@ -582,7 +582,7 @@ export function PropertiesSidebar() {
           <div className="flex items-center justify-end border-b border-[var(--ds-border-divider)] px-3 py-1.5">
             <IconButton
               aria-label={
-                sidebarView === "scene" ? "Layer properties" : "Scene settings"
+                sidebarView === "scene" ? "图层属性" : "场景设置"
               }
               className={cn(
                 "h-7 w-7",

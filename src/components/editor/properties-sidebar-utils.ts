@@ -9,30 +9,30 @@ import type {
 import type { useTimelineStore } from "@/store/timeline-store"
 
 export const blendModeOptions = [
-  { label: "Normal", value: "normal" },
-  { label: "Multiply", value: "multiply" },
-  { label: "Screen", value: "screen" },
-  { label: "Overlay", value: "overlay" },
-  { label: "Darken", value: "darken" },
-  { label: "Lighten", value: "lighten" },
+  { label: "正常", value: "normal" },
+  { label: "正片叠底", value: "multiply" },
+  { label: "滤色", value: "screen" },
+  { label: "叠加", value: "overlay" },
+  { label: "变暗", value: "darken" },
+  { label: "变亮", value: "lighten" },
 ] as const
 
 export const compositeModeOptions = [
-  { label: "Filter", value: "filter" },
-  { label: "Mask", value: "mask" },
+  { label: "滤镜", value: "filter" },
+  { label: "蒙版", value: "mask" },
 ] as const
 
 export const maskSourceOptions = [
-  { label: "Luminance", value: "luminance" },
+  { label: "亮度", value: "luminance" },
   { label: "Alpha", value: "alpha" },
-  { label: "Red", value: "red" },
-  { label: "Green", value: "green" },
-  { label: "Blue", value: "blue" },
+  { label: "红", value: "red" },
+  { label: "绿", value: "green" },
+  { label: "蓝", value: "blue" },
 ] as const
 
 export const maskModeOptions = [
-  { label: "Multiply", value: "multiply" },
-  { label: "Stencil", value: "stencil" },
+  { label: "正片叠底", value: "multiply" },
+  { label: "镂空", value: "stencil" },
 ] as const
 
 const COLLAPSIBLE_PARAM_GROUPS = new Set(["Points", "Effects"])
@@ -67,11 +67,11 @@ export function getSelectedAsset(
 export function formatLayerKind(kind: string): string {
   switch (kind) {
     case "effect":
-      return "Effect"
+      return "效果"
     case "model":
-      return "3D Model"
+      return "3D 模型"
     case "source":
-      return "Source"
+      return "素材源"
     default:
       return kind
   }

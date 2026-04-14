@@ -246,7 +246,7 @@ export function EditorTopBar() {
         >
           <div className="inline-flex items-center gap-1.5">
             <IconButton
-              aria-label="Undo"
+              aria-label="撤销"
               className="h-7 w-7 disabled:opacity-45"
               disabled={!canUndo}
               onClick={handleUndo}
@@ -255,7 +255,7 @@ export function EditorTopBar() {
               <ArrowCounterClockwiseIcon size={18} weight="bold" />
             </IconButton>
             <IconButton
-              aria-label="Redo"
+              aria-label="重做"
               className="h-7 w-7 disabled:opacity-45"
               disabled={!canRedo}
               onClick={handleRedo}
@@ -267,7 +267,7 @@ export function EditorTopBar() {
 
           <div className="inline-flex items-center gap-1.5">
             <IconButton
-              aria-label="Zoom out"
+              aria-label="缩小"
               className="h-7 w-7 disabled:opacity-45"
               onClick={() => applyZoomStep("out")}
               variant="default"
@@ -284,7 +284,7 @@ export function EditorTopBar() {
               </Typography>
             </button>
             <IconButton
-              aria-label="Zoom in"
+              aria-label="放大"
               className="h-7 w-7 disabled:opacity-45"
               onClick={() => applyZoomStep("in")}
               variant="default"
@@ -296,7 +296,7 @@ export function EditorTopBar() {
               className="block h-5 w-px rounded-full bg-[var(--ds-border-divider)]"
             />
             <IconButton
-              aria-label="Export"
+              aria-label="导出"
               className="h-7 w-7 disabled:opacity-45"
               onClick={() => setIsExportDialogOpen(true)}
               variant="default"
@@ -315,7 +315,7 @@ export function EditorTopBar() {
           >
             <div className="inline-flex w-full items-center justify-between gap-1.5">
               <IconButton
-                aria-label="Undo"
+                aria-label="撤销"
                 className="h-7 w-7 disabled:opacity-45"
                 disabled={!canUndo}
                 onClick={handleUndo}
@@ -324,7 +324,7 @@ export function EditorTopBar() {
                 <ArrowCounterClockwiseIcon size={18} weight="bold" />
               </IconButton>
               <IconButton
-                aria-label="Redo"
+                aria-label="重做"
                 className="h-7 w-7 disabled:opacity-45"
                 disabled={!canRedo}
                 onClick={handleRedo}
@@ -336,7 +336,7 @@ export function EditorTopBar() {
 
             <div className="inline-flex w-full items-center justify-between gap-1.5">
               <IconButton
-                aria-label="Zoom out"
+                aria-label="缩小"
                 className="h-7 w-7 disabled:opacity-45"
                 onClick={() => applyZoomStep("out")}
                 variant="default"
@@ -353,7 +353,7 @@ export function EditorTopBar() {
                 </Typography>
               </button>
               <IconButton
-                aria-label="Zoom in"
+                aria-label="放大"
                 className="h-7 w-7 disabled:opacity-45"
                 onClick={() => applyZoomStep("in")}
                 variant="default"
@@ -365,7 +365,7 @@ export function EditorTopBar() {
                 className="mx-1 block h-5 w-px rounded-full bg-[var(--ds-border-divider)]"
               />
               <IconButton
-                aria-label="Export"
+                aria-label="导出"
                 className="h-7 w-7 disabled:opacity-45"
                 onClick={() => setIsExportDialogOpen(true)}
                 variant="default"
