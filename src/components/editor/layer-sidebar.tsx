@@ -141,8 +141,8 @@ type LayerListItemProps = {
 }
 
 const LAYER_ACTION_OPTIONS = [
-  { label: "Reset properties", value: "reset" },
-  { label: "Delete layer", value: "delete" },
+  { label: "重置属性", value: "reset" },
+  { label: "删除图层", value: "delete" },
 ] as const satisfies readonly {
   label: ReactNode
   value: LayerAction
@@ -188,7 +188,7 @@ const LayerListItem = memo(function LayerListItem({
     >
       <div className="grid min-w-0 grid-cols-[14px_minmax(0,1fr)] items-center gap-[var(--ds-space-2)]">
         <button
-          aria-label={`Reorder ${layer.name}`}
+          aria-label={`排序 ${layer.name}`}
           className={cn(
             "inline-flex h-[14px] w-[14px] touch-none items-center justify-center bg-transparent p-0 text-[var(--ds-color-text-muted)]",
             !layer.locked && "cursor-grab active:cursor-grabbing",
@@ -238,14 +238,14 @@ const LayerListItem = memo(function LayerListItem({
         options={LAYER_ACTION_OPTIONS}
         placeholder={<DotsThreeVerticalIcon size={14} weight="bold" />}
         popupClassName="min-w-[152px]"
-        triggerAriaLabel={`Layer actions for ${layer.name}`}
+        triggerAriaLabel={`${layer.name} 的图层操作`}
         triggerVariant="icon"
         valueClassName="inline-flex items-center justify-center leading-none text-[var(--ds-color-text-tertiary)] [&_svg]:h-[14px] [&_svg]:w-[14px]"
       />
 
       {hasMissingAsset ? (
         <IconButton
-          aria-label={`Relink missing asset for ${layer.name}`}
+          aria-label={`重新关联 ${layer.name} 的缺失资产`}
           onClick={(event) => {
             event.stopPropagation()
             onRelinkPick(layer)
@@ -256,7 +256,7 @@ const LayerListItem = memo(function LayerListItem({
         </IconButton>
       ) : (
         <IconButton
-          aria-label={layer.visible ? "Hide layer" : "Show layer"}
+          aria-label={layer.visible ? "隐藏图层" : "显示图层"}
           onClick={(event) => {
             event.stopPropagation()
             onSetLayerVisibility(layer.id, !layer.visible)
@@ -272,7 +272,7 @@ const LayerListItem = memo(function LayerListItem({
       )}
 
       <IconButton
-        aria-label={`Delete ${layer.name}`}
+        aria-label={`删除 ${layer.name}`}
         onClick={(event) => {
           event.stopPropagation()
           onLayerAction(layer.id, "delete")
@@ -522,11 +522,11 @@ export function LayerSidebar() {
       >
         <div className="flex min-h-11 items-center justify-between border-[var(--ds-border-divider)] border-b pr-3 pl-[var(--ds-space-4)]">
           <Typography className="uppercase" tone="secondary" variant="overline">
-            Layers
+            图层
           </Typography>
           <div className="inline-flex items-center gap-1.5">
             <IconButton
-              aria-label="Enter immersive canvas mode"
+              aria-label="进入沉浸式画布模式"
               className="pointer-events-auto"
               onClick={enterImmersiveCanvas}
               variant="ghost"

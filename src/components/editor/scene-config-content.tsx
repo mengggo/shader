@@ -14,8 +14,8 @@ import type { CompositionAspect, SceneConfig } from "@/types/editor"
 import { COMPOSITION_ASPECTS } from "@/types/editor"
 
 const ASPECT_LABELS: Partial<Record<string, string>> = {
-  screen: "Screen",
-  custom: "Custom",
+  screen: "屏幕",
+  custom: "自定义",
 }
 
 const aspectOptions = COMPOSITION_ASPECTS.map((aspect) => ({
@@ -160,14 +160,14 @@ export function SceneConfigContent() {
     <>
       <div className="flex flex-col gap-1.5 border-b border-[var(--ds-border-divider)] px-4 pt-[14px] pb-3">
         <Typography tone="secondary" variant="overline">
-          Scene
+          场景
         </Typography>
       </div>
 
       <div className="flex min-h-0 max-h-[min(62vh,620px)] flex-col gap-0 overflow-y-auto">
         {/* Composition */}
-        <Section title="Composition">
-          <Row label="Aspect">
+        <Section title="画幅">
+          <Row label="比例">
             <Select
               onValueChange={(value) =>
                 handleUpdate("compositionAspect", value as CompositionAspect)
@@ -212,8 +212,8 @@ export function SceneConfigContent() {
         </Section>
 
         {/* Background */}
-        <Section title="Background">
-          <Row label="Color">
+        <Section title="背景">
+          <Row label="颜色">
             <ColorPicker
               onValueChange={(value) => handleUpdate("backgroundColor", value)}
               value={sceneConfig.backgroundColor}
@@ -222,22 +222,22 @@ export function SceneConfigContent() {
         </Section>
 
         {/* Color Adjustments */}
-        <Section title="Color Adjustments">
+        <Section title="色调调整">
           <Slider
-            label="Brightness"
+            label="亮度"
             max={100}
             min={-100}
             onValueChange={(value) => handleUpdate("brightness", value / 100)}
             value={sceneConfig.brightness * 100}
           />
           <Slider
-            label="Contrast"
+            label="对比度"
             max={100}
             min={-100}
             onValueChange={(value) => handleUpdate("contrast", value / 100)}
             value={sceneConfig.contrast * 100}
           />
-          <Row label="Invert">
+          <Row label="反转">
             <Toggle
               checked={sceneConfig.invert}
               onCheckedChange={(value) => handleUpdate("invert", value)}
@@ -246,7 +246,7 @@ export function SceneConfigContent() {
         </Section>
 
         {/* Channel Mixer */}
-        <Section title="Channel Mixer">
+        <Section title="通道混合器">
           <ChannelCurves
             curves={channelCurves}
             onCurveChange={handleCurveChange}
@@ -254,16 +254,16 @@ export function SceneConfigContent() {
         </Section>
 
         {/* Clamp / Remap */}
-        <Section title="Clamp / Remap">
+        <Section title="钳制 / 重映射">
           <Slider
-            label="Black Point"
+            label="黑场"
             max={100}
             min={0}
             onValueChange={(v) => handleUpdate("clampMin", v / 100)}
             value={sceneConfig.clampMin * 100}
           />
           <Slider
-            label="White Point"
+            label="白场"
             max={100}
             min={0}
             onValueChange={(v) => handleUpdate("clampMax", v / 100)}
@@ -272,9 +272,9 @@ export function SceneConfigContent() {
         </Section>
 
         {/* Quantize */}
-        <Section title="Quantize">
+        <Section title="色调量化">
           <Slider
-            label="Levels"
+            label="色阶数"
             max={256}
             min={2}
             onValueChange={(value) =>
@@ -285,8 +285,8 @@ export function SceneConfigContent() {
         </Section>
 
         {/* Color Map */}
-        <Section title="Color Map">
-          <Row label="Enabled">
+        <Section title="颜色映射">
+          <Row label="启用">
             <Toggle
               checked={sceneConfig.colorMap !== null}
               onCheckedChange={(enabled) => {

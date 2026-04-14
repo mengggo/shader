@@ -78,173 +78,158 @@ const CATEGORY_OPTIONS: readonly {
   label: string
   value: LayerPickerCategory
 }[] = [
-  { label: "All", value: "all" },
-  { label: "Core", value: "core" },
-  { label: "Distort", value: "distort" },
+  { label: "全部", value: "all" },
+  { label: "基础", value: "core" },
+  { label: "扭曲", value: "distort" },
 ] as const
 
 const SOURCE_ITEMS: readonly SourceItem[] = [
-  { icon: ImageIcon, label: "Image", value: "image" },
-  { icon: VideoCameraIcon, label: "Video", value: "video" },
-  { icon: CameraIcon, label: "Camera", value: "live" },
-  { icon: TextTIcon, label: "Text", value: "text" },
-  { icon: GradientIcon, label: "Mesh Gradient", value: "gradient" },
-  { icon: CodeIcon, label: "Custom Shader", value: "custom-shader" },
+  { icon: ImageIcon, label: "图像", value: "image" },
+  { icon: VideoCameraIcon, label: "视频", value: "video" },
+  { icon: CameraIcon, label: "摄像头", value: "live" },
+  { icon: TextTIcon, label: "文字", value: "text" },
+  { icon: GradientIcon, label: "网格渐变", value: "gradient" },
+  { icon: CodeIcon, label: "自定义着色器", value: "custom-shader" },
 ] as const
 
 const EFFECT_ITEMS: readonly EffectItem[] = [
   {
     category: "core",
-    description:
-      "Turns the image into text glyphs for a classic terminal look.",
+    description: "将图像转换为字符字形，呈现经典终端风格。",
     label: "ASCII",
     previewSrc: "/examples/ascii.webp",
     value: "ascii",
   },
   {
     category: "core",
-    description: "Adds smeared glow and fluid bleed for neon ink-like edges.",
-    label: "Ink",
+    description: "添加涂抹发光与流体渗色，模拟霓虹墨水边缘效果。",
+    label: "油墨",
     previewSrc: "/examples/ink.webp",
     value: "ink",
   },
   {
     category: "core",
-    description: "Maps the source into repeatable woven and graphic textures.",
-    label: "Pattern",
+    description: "将源图像映射为可重复的编织纹理与图形肌理。",
+    label: "图案",
     previewSrc: "/examples/pattern.webp",
     value: "pattern",
   },
   {
     category: "core",
-    description: "Adds scanlines, phosphor bloom, and display-era noise.",
+    description: "添加扫描线、荧光晕染与老式显示器噪点。",
     label: "CRT",
     previewSrc: "/examples/crt.webp",
     value: "crt",
   },
   {
     category: "core",
-    description: "Reduces color resolution into ordered or textured dithering.",
-    label: "Dithering",
+    description: "将色彩精度降低为有序或纹理抖动效果。",
+    label: "抖动",
     previewSrc: "/examples/dithering.webp",
     value: "dithering",
   },
   {
     category: "core",
-    description:
-      "Converts the frame into graphic dot screens and print textures.",
-    label: "Halftone",
+    description: "将帧转换为图形网点屏幕与印刷纹理。",
+    label: "半色调",
     previewSrc: "/examples/halftone.webp",
     value: "halftone",
   },
   {
     category: "core",
-    description: "Breaks the image into a glowing particle matrix.",
-    label: "Particle Grid",
+    description: "将图像分解为发光粒子矩阵。",
+    label: "粒子网格",
     previewSrc: "/examples/particle-grid.webp",
     value: "particle-grid",
   },
   {
     category: "core",
-    description:
-      "Groups neighboring pixels into larger blocks for a low-res look.",
-    label: "Pixelation",
+    description: "将相邻像素归并为更大色块，呈现低分辨率风格。",
+    label: "像素化",
     previewSrc: "/examples/pixelation.webp",
     value: "pixelation",
   },
   {
     category: "core",
-    description:
-      "Compresses tones into fewer steps while keeping the image graphic.",
-    label: "Posterize",
+    description: "将色调压缩为更少层级，保留图形化外观。",
+    label: "色调分离",
     previewSrc: "/examples/posterize.webp",
     value: "posterize",
   },
   {
     category: "core",
-    description:
-      "Turns the frame into stark black and white with controllable cutoff and grain.",
-    label: "Threshold",
+    description: "将帧转为高对比黑白，可控截止值与颗粒感。",
+    label: "阈值",
     previewSrc: "/examples/threshold.webp",
     value: "threshold",
   },
   {
     category: "core",
-    description:
-      "Pen-plotter aesthetic with hatching, crosshatching, and ink simulation.",
-    label: "Plotter",
+    description: "绘图机美学，支持排线、交叉排线与墨水模拟。",
+    label: "绘图机",
     previewSrc: "/examples/plotter.webp",
     value: "plotter",
   },
   {
     category: "distort",
-    description:
-      "Renders luma-gated scanlines and bends them around a pull or push attractor.",
-    label: "Circuit Bent",
+    description: "渲染亮度门控扫描线，并围绕吸引子弯曲变形。",
+    label: "电路弯折",
     previewSrc: "/examples/circuit-bent.webp",
     value: "circuit-bent",
   },
   {
     category: "distort",
-    description:
-      "Smears pixels linearly or radially for motion, focus, or depth.",
-    label: "Directional Blur",
+    description: "沿线性或径向方向涂抹像素，模拟运动、焦外或景深。",
+    label: "方向模糊",
     previewSrc: "/examples/directional-blur.webp",
     value: "directional-blur",
   },
   {
     category: "distort",
-    description:
-      "Sorts neighboring pixels into streaks based on luma or color.",
-    label: "Pixel Sorting",
+    description: "按亮度或色彩将相邻像素排序成拉丝条纹。",
+    label: "像素排序",
     previewSrc: "/examples/pixel-sorting.webp",
     value: "pixel-sorting",
   },
   {
     category: "distort",
-    description:
-      "Offsets horizontal slices into blocky glitch bands and streaks.",
-    label: "Slice",
+    description: "将水平切片偏移为块状故障条纹。",
+    label: "切片",
     previewSrc: "/examples/slice.webp",
     value: "slice",
   },
   {
     category: "distort",
-    description:
-      "Extracts contrast edges and turns them into graphic outlines.",
-    label: "Edge Detect",
+    description: "提取对比度边缘，转化为图形轮廓线。",
+    label: "边缘检测",
     previewSrc: "/examples/edge-detect.webp",
     value: "edge-detect",
   },
   {
     category: "distort",
-    description:
-      "Pushes pixels along luminance to create warped displacement fields.",
-    label: "Displacement Map",
+    description: "沿亮度方向推动像素，生成扭曲置换场。",
+    label: "置换贴图",
     previewSrc: "/examples/displacement-map.webp",
     value: "displacement-map",
   },
   {
     category: "distort",
-    description:
-      "Offsets color channels for fringing and lens-separation effects.",
-    label: "Chromatic Aberration",
+    description: "偏移色彩通道，产生色边与镜头分离效果。",
+    label: "色差",
     previewSrc: "/examples/chromatic-aberration.webp",
     value: "chromatic-aberration",
   },
   {
     category: "distort",
-    description:
-      "Blur that ramps from sharp to soft across a controllable range.",
-    label: "Progressive Blur",
+    description: "从锐利到柔和的渐进模糊，可控范围。",
+    label: "渐进模糊",
     previewSrc: "/examples/progressive-blur.webp",
     value: "smear",
   },
   {
     category: "distort",
-    description:
-      "Ribbed lenticular glass distortion with subtle chromatic split.",
-    label: "Fluted Glass",
+    description: "竖纹透镜玻璃扭曲，带有细微色差分离。",
+    label: "竖纹玻璃",
     previewSrc: "/examples/fluted-glass.webp",
     value: "fluted-glass",
   },
@@ -504,7 +489,7 @@ export function LayerPicker({ className, onSelect }: LayerPickerProps) {
       <IconButton
         aria-controls={panelId}
         aria-expanded={open}
-        aria-label="Add layer"
+        aria-label="添加图层"
         className="focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--ds-border-active)] focus-visible:outline-offset-2"
         onClick={() => {
           setOpen((current) => {
@@ -564,7 +549,7 @@ export function LayerPicker({ className, onSelect }: LayerPickerProps) {
                   >
                     <div className="border-[var(--ds-border-divider)] border-b px-3 pt-3 pb-2.5">
                       <div className="mb-2 font-[var(--ds-font-mono)] text-[10px] text-[var(--ds-color-text-muted)] uppercase tracking-[0.14em]">
-                        Source
+                        素材源
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {SOURCE_ITEMS.map((item) => (
