@@ -165,7 +165,7 @@ const customShaderParams = [
 
 const textParams = [
   {
-    defaultValue: "basement.studio",
+    defaultValue: "SuperMaker.Club",
     key: "text",
     label: "文本",
     maxLength: 32,
